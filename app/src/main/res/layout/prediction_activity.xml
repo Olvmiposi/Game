@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical">
+
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar_home"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                app:title="Prediction Home" >
+            </androidx.appcompat.widget.Toolbar>
+
+            <TextView
+                android:id="@+id/pageTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:text="Possibilities"
+                android:layout_below="@+id/toolbar_home"
+                android:textColor="#100F0F"
+                android:textSize="25sp" />
+            <LinearLayout
+                android:id="@+id/layout"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/pageTitle"
+                android:layout_weight="0"
+                android:gravity="center">
+
+                <Space
+                    android:layout_width="20dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"></Space>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:inputType="text"
+                    android:imeOptions="actionNext"
+                    android:textSize="10dp"
+                    android:hint="Home : " />
+                <EditText
+                    android:id="@+id/maxHome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:inputType="number"
+                    android:imeOptions="actionNext"
+                    android:maxLines="1"
+                    android:textSize="10dp"
+                    android:hint="0" />
+
+                <Space
+                    android:layout_width="20dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"></Space>
+
+                <TextView
+                    android:id="@+id/to"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:inputType="text"
+                    android:imeOptions="actionNext"
+                    android:textSize="10dp"
+                    android:hint="Away : " />
+
+                <EditText
+                    android:id="@+id/maxAway"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:inputType="text"
+                    android:imeOptions="actionNext"
+                    android:maxLines="1"
+                    android:hint="0"
+                    android:textSize="10dp" />
+
+                <Space
+                    android:layout_width="20dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"></Space>
+
+                <TextView
+                    android:id="@+id/from"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_weight="0"
+                    android:gravity="center"
+                    android:inputType="text"
+                    android:imeOptions="actionNext"
+                    android:textSize="10dp"
+                    android:hint="size : " />
+
+                <EditText
+                    android:id="@+id/size"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:inputType="text"
+                    android:imeOptions="actionNext"
+                    android:maxLines="1"
+                    android:hint="0"
+                    android:textSize="10dp" />
+
+                <Space
+                    android:layout_width="20dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"></Space>
+
+            </LinearLayout>
+
+            <ListView
+                android:id="@+id/myPrediction_ListView"
+                android:layout_width="fill_parent"
+                android:layout_height="200dp"
+                android:layout_below="@+id/layout"
+                android:layout_marginTop="5dp"
+                android:background="#FFA733F9"
+                android:cacheColorHint="#FFA733F9" />
+
+            <TextView
+                android:id="@+id/predictions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/myPrediction_ListView"
+                android:layout_centerHorizontal="true"
+                android:text="Auto Predictions"
+                android:textColor="#100F0F"
+                android:textSize="25sp" />
+
+            <ListView
+                android:id="@+id/prediction_ListView"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_below="@+id/predictions"
+                android:layout_marginTop="5dp"
+                android:background="#CF7843"
+                android:cacheColorHint="#CF7843" />
+
+        </LinearLayout>
+    </RelativeLayout>
+</layout>

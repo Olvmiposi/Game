@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_splash"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".view.SplashScreen">
+
+    <FrameLayout
+        android:id="@+id/layout_placeholder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1">
+    </FrameLayout>
+
+    <LinearLayout
+        android:background="#344955"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center|bottom"
+        android:orientation="vertical"
+        android:layout_weight="0"
+        tools:ignore="MissingConstraints">
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:max="100"
+            android:minWidth="250dp"
+            android:minHeight="50dp"
+            android:progressDrawable="@drawable/circle_progressbar" />
+
+        <Button
+            android:id="@+id/mainMenuBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="15dp"
+            android:text="Go to Main Menu"
+            android:textColor="@color/black"
+            android:textSize="11sp"
+            android:backgroundTint="#F9AA33"
+            android:gravity="center"
+            tools:layout_editor_absoluteX="124dp"
+            tools:layout_editor_absoluteY="684dp"
+            app:cornerRadius="15dp"/>
+
+    </LinearLayout>
+</LinearLayout>

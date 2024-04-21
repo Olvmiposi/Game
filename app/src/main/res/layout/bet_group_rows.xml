@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:orientation="horizontal"
+    android:padding="1dp"
+    android:descendantFocusability="blocksDescendants">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#344955"
+        card_view:cardCornerRadius="20dp"
+        card_view:cardElevation="8dp">
+
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="left"
+                android:layout_margin="3dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/group"
+                    android:layout_width="60dp"
+                    android:layout_height="match_parent"
+                    android:hint="Group 1"
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:background="#2196F3"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/game"
+                    android:hint="B/G : "
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0"
+                    android:gravity="center"/>
+                <TextView
+                    android:id="@+id/no_of_bets"
+                    android:hint="3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0"
+                    android:gravity="center"/>
+                <TextView
+                    android:text=" Home teams : "
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0"
+                    android:gravity="center"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_gravity="left"
+                    android:layout_margin="5dp"
+                    android:orientation="horizontal">
+
+                    <ListView
+                        android:id="@+id/teamListView"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:dividerHeight="1dp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+        </TableRow>
+    </androidx.cardview.widget.CardView>
+</LinearLayout>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <item android:id="@+id/search"
+        android:title="Search By Date : MM/DD/YYYY "
+        android:icon="@drawable/search_24"
+        android:orderInCategory="1"
+        android:iconifiedByDefault="false"
+        app:showAsAction="collapseActionView|always"
+        app:actionViewClass="android.widget.SearchView" />
+
+    <item
+        android:id="@+id/max"
+        android:title="Show Max" />
+    <item
+        android:id="@+id/min"
+        android:title="Show Min" />
+    <item
+        android:id="@+id/mostOccur"
+        android:title="Show Most Occurred" />
+    <item
+        android:id="@+id/lastFive"
+        android:title="Show Last 5 By Club" />
+    <item
+        android:id="@+id/lastFiveByHA"
+        android:title="Show Last 5 By Home Or Away" />
+</menu>

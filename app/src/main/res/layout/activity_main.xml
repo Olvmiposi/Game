@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".view.MainActivity">
+
+    <data>
+        <variable
+            name="AppViewModel"
+            type="com.example.game.viewModel.AppViewModel" />
+    </data>
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swiperefresh"
+        android:layout_height="match_parent"
+        android:layout_width="match_parent">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:indeterminate="true"
+                    android:max="100"
+                    android:minWidth="250dp"
+                    android:minHeight="50dp"
+                    android:progressDrawable="@drawable/circle_progressbar" />
+
+                <FrameLayout
+                    android:id="@+id/layout_placeholder"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+
+                </FrameLayout>
+
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:layout_alignParentBottom="true"
+                    android:gravity="bottom"
+                    android:layout_weight="0"
+                    android:orientation="vertical">
+
+                    <TableLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="fill_parent"
+                        android:gravity="center" >
+
+                        <TableRow
+                            android:layout_width="wrap_content"
+                            android:layout_height="fill_parent"
+                            android:gravity="center" >
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"></Space>
+
+                            <LinearLayout
+                                android:id="@+id/passwordLayout"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:onClick="passwords"
+                                android:layout_weight="0"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/available_usernames"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="top|left"
+                                    android:background="@drawable/notification_count"
+                                    android:text="1"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold" />
+
+                                <Button
+                                    android:id="@+id/passwordBtn"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:backgroundTint="#34833C"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/green_gaming"
+                                    android:onClick="passwords"
+                                    android:text="Passwords"
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:backgroundTint="#F9AA33"
+                                    android:layout_gravity="center"
+                                    android:onClick="passwords"
+                                    android:gravity="center"
+                                    android:text=" Passwords "
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+                            </LinearLayout>
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"></Space>
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0"
+                                android:onClick="allGame"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/total_games_count"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="top|left"
+                                    android:background="@drawable/notification_count"
+                                    android:text="1"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold" />
+
+                                <Button
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:backgroundTint="#DA5353"
+                                    android:layout_gravity="center"
+                                    android:onClick="allGame"
+                                    android:background="@drawable/red_gaming"
+                                    android:textSize="11sp"
+                                    app:cornerRadius="12dp" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:backgroundTint="#F9AA33"
+                                        android:layout_gravity="center"
+                                        android:onClick="allGame"
+                                        android:gravity="center"
+                                        android:text=" All Games "
+                                        android:textSize="11sp"
+                                        app:cornerRadius="15dp" />
+                            </LinearLayout>
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"></Space>
+
+                        </TableRow>
+
+                        <TableRow
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center" >
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:onClick="goHome"
+                                android:orientation="vertical">
+
+                                <Button
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:layout_weight="1"
+                                    android:backgroundTint="#F9AA33"
+                                    android:onClick="goHome"
+                                    android:background="@drawable/home_24"
+                                    android:gravity="center"
+                                    android:layout_gravity="center"
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:onClick="goHome"
+                                    android:backgroundTint="#F9AA33"
+                                    android:text="    Home   "
+                                    android:layout_gravity="center"
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+                            </LinearLayout>
+
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"></Space>
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:onClick="callApi"
+                                android:orientation="vertical">
+
+                                <Button
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:layout_weight="1"
+                                    android:backgroundTint="#F9AA33"
+                                    android:onClick="callApi"
+                                    android:background="@drawable/call_24"
+                                    android:gravity="center"
+                                    android:layout_gravity="center"
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:backgroundTint="#3789CA"
+                                    android:layout_weight="1"
+                                    android:layout_gravity="center"
+                                    android:onClick="callApi"
+                                    android:gravity="center"
+                                    android:text=" Call  API "
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+                            </LinearLayout>
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"></Space>
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:onClick="openBetActivity"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <Button
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:backgroundTint="#F9AA33"
+                                    android:layout_weight="1"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/dice"
+                                    android:onClick="openBetActivity"
+                                    android:gravity="center"
+                                    android:text=" Bet "
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:backgroundTint="#3789CA"
+                                    android:layout_weight="1"
+                                    android:layout_gravity="center"
+                                    android:onClick="openBetActivity"
+                                    android:gravity="center"
+                                    android:text="     Bet    "
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+                            </LinearLayout>
+
+
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"></Space>
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:onClick="schrodinger"
+                                android:orientation="vertical">
+
+                            <Button
+                                android:id="@+id/schrodingerBtn"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:backgroundTint="#F9AA33"
+                                android:layout_weight="1"
+                                android:layout_gravity="center"
+                                android:background="@drawable/cat"
+                                android:onClick="schrodinger"
+                                android:gravity="center"
+                                android:text=" Bet "
+                                android:textSize="11sp"
+                                app:cornerRadius="15dp" />
+
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:backgroundTint="#F9AA33"
+                                android:layout_gravity="center"
+                                android:onClick="schrodinger"
+                                android:gravity="center"
+                                android:text="Schrodinger"
+                                android:textSize="11sp"
+                                app:cornerRadius="15dp" />
+
+                            </LinearLayout>
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"></Space>
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:onClick="table"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <Button
+                                    android:id="@+id/table"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:layout_weight="1"
+                                    android:backgroundTint="#F9AA33"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/table"
+                                    android:onClick="table"
+                                    android:text="Table"
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:backgroundTint="#F9AA33"
+                                    android:layout_gravity="center"
+                                    android:onClick="table"
+                                    android:gravity="center"
+                                    android:text="   Table   "
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+                            </LinearLayout>
+                        </TableRow>
+                    </TableLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </RelativeLayout>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+</layout>
