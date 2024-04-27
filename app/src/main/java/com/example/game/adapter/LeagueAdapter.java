@@ -84,13 +84,12 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
 
         if(layout == R.layout.league_rows)
         {
-            leagueId.setText(String.valueOf(currentLeague.getId()));
+            leagueId.setText(String.valueOf(currentLeague.getLeagueId()));
             name.setText(currentLeague.getName());
             season.setText(String.valueOf(currentLeague.getSeason()));
             start.setText(currentLeague.getStart());
             end.setText(currentLeague.getEnd());
         }else if(layout == R.layout.league_activity_rows){
-
 
             if (colorChange == 1){// default is 0, red
                 li.setBackgroundColor(Color.parseColor("#34833C"));// green
@@ -128,12 +127,12 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
             season.setText(String.valueOf(currentLeague.getSeason()));
             start.setText(currentLeague.getStart());
             end.setText(currentLeague.getEnd());
-
-//            try {
-//
-//            }catch (NullPointerException e){
-//
-//            }
+        }else if(layout == R.layout.callapi_activity_rows){
+            //leagueId.setText(String.valueOf(currentLeague.getLeagueId()));
+            name.setText(currentLeague.getName());
+            season.setText(String.valueOf(currentLeague.getSeason()));
+            start.setText(currentLeague.getStart());
+            end.setText(currentLeague.getEnd());
         }
         return convertView;
     }
@@ -155,7 +154,8 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
                 for (League league : leagues) {
                     if ( league.getName().toLowerCase().contains(constraint.toString().toLowerCase())
                         ||  String.valueOf(league.getSeason()).toLowerCase().contains(constraint.toString().toLowerCase())
-                        ||  String.valueOf(league.getId()).toLowerCase().contains(constraint.toString().toLowerCase())
+                        ||  String.valueOf(league.getLeagueId()).toLowerCase().contains(constraint.toString().toLowerCase())
+                        ||  String.valueOf(league.getSeason()).toLowerCase().contains(constraint.toString().toLowerCase())
                         || league.getStart().toLowerCase().contains(constraint.toString().toLowerCase())
                         || league.getEnd().toLowerCase().contains(constraint.toString().toLowerCase())
                     ){

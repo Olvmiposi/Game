@@ -23,21 +23,26 @@ public interface GameDAO {
     void update(Game game);
     @Query("SELECT * from games where checked = 1 and leagueId = :leagueId ORDER By leagueId, date, time DESC")
     List<Game> getCheckedGamesByLatestDate(int leagueId);
+    @Query("SELECT * from games where checked = 1 and leagueId = :leagueId and season = :season ORDER By leagueId, date, time DESC")
+    List<Game> getCheckedGamesByLatestDate2(int leagueId, int season);
     @Query("SELECT * from games where checked = 1 and date = :date and leagueId = :leagueId ")
     LiveData<List<Game>> getCheckedGamesByDate(String date, int leagueId);
     @Query("SELECT * from games where checked = 1 ")
     LiveData<List<Game>> getAllCheckedGames();
+    @Query("SELECT * from games where checked = 1 ")
+    List<Game> getAllCheckedGamesList();
     @Query("SELECT * from games where checked = 1 and home = :home")
     List<Game> getCheckedGamesByHome(String home);
     @Query("SELECT * from games where checked = 1 and away = :away")
     List<Game> getCheckedGamesByAway(String away);
-
+    @Query("SELECT DISTINCT leagueId FROM games ORDER By date Asc")
+    List<Integer> getGameLeagues();
     @Query("SELECT * from games where away = :club or home = :club and checked = 1")
     List<Game> getCheckedGamesByClub(String club);
     @Query("SELECT * from games where checked = 1 and season = :season ")
     List<Game> getAllCheckedGamesBySeason(int season);
-    @Query("SELECT * from games where checked = 1 and leagueId = :leagueId")
-    LiveData<List<Game>> getAllCheckedGamesByLeagueId(int leagueId);
+    @Query("SELECT * from games where checked = 1 and leagueId = :leagueId and season = :season")
+    LiveData<List<Game>> getAllCheckedGamesByLeagueId(int leagueId, int season);
     @Query("SELECT * from games where  score1 = '0' and score2 = '0' and checked = 0  ORDER By date Asc")
     LiveData<List<Game>> getGames();
     @Query("SELECT * from games where  score1 = '0' and score2 = '0' and checked = 0  ORDER By date Asc")

@@ -16,6 +16,8 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -27,17 +29,25 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.game.R;
 import com.example.game.model.Game;
 import com.example.game.model.Info;
+import com.example.game.model.League;
 import com.example.game.model.Usage;
 import com.example.game.model.User;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
 import com.example.game.service.MainMenuActivityService;
+import com.example.game.view.fragments.AllGamesFragmentActivity;
 import com.example.game.view.fragments.BetFragment;
 import com.example.game.view.fragments.CallApiFragment;
 import com.example.game.view.fragments.HomeFragment;
 import com.example.game.view.fragments.LeagueFragment;
+import com.example.game.view.fragments.PasswordsFragmentActivity;
+import com.example.game.view.fragments.SchrodingerFragment;
+import com.example.game.view.fragments.SchrodingerFragmentActivity;
+import com.example.game.view.fragments.TableFragment;
+import com.example.game.view.fragments.TableFragmentActivity;
 import com.example.game.viewModel.AppViewModel;
 import com.example.game.viewModel.MyApplication;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.io.Serializable;
 import java.text.DateFormat;
@@ -68,10 +78,13 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
     private LinearLayout passwordLayout;
     private Info info;
     private Context context;
-
     private ArrayList<Integer> allGamesLeaguesId,allPasswordLeaguesId,allSchrodingerLeaguesId, homeScore, awayScore;
+
+    private League league ;
+    private ArrayList<League> allGamesLeagues,allPasswordLeagues,allSchrodingerLeagues;
     private ArrayList<Game>  homeGame, awayGame;
     private int maxHome, minHome, maxAway, minAway;
+    private BottomNavigationView bottomNav;
 
     @SuppressLint("MissingInflatedId")
     @RequiresApi(api = Build.VERSION_CODES.P)
@@ -100,6 +113,8 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
         usage.setId(1);
         usage.setLast_used(dateFormat.format(date));
 
+
+
         available_usernames = findViewById(R.id.available_usernames);
         total_games_count = findViewById(R.id.total_games_count);
         network_status_text = findViewById(R.id.network_status_text);
@@ -116,6 +131,12 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
         setInfo();
 
         View rootView = findViewById(android.R.id.content);
+
+        // as soon as the application opens the first
+        // fragment should be shown to the user
+        // in this case it is algorithm fragment
+        //getSupportFragmentManager().beginTransaction().replace(R.id.layout_placeholder, new HomeFragment()).commit();
+
 
         goHome(rootView);
 
@@ -137,6 +158,8 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
         allGamesLeaguesId = new ArrayList<>();
         allPasswordLeaguesId = new ArrayList<>();
         allSchrodingerLeaguesId = new ArrayList<>();
+        league = new League();
+        allPasswordLeagues = new ArrayList<>();
 
         appDatabase.getGames().observe(this, new Observer<List<Game>>() {
             @Override
@@ -146,10 +169,19 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
                     for(Game game : games ) {
                         if(!allGamesLeaguesId.contains(game.getLeagueId()))
                             allGamesLeaguesId.add(game.getLeagueId());
+
                     }
                 }
             }
         });
+
+
+        games = appDatabase.getAllCheckedGamesList();
+        for(Game game : games) {
+            league = appDatabase.getLeagueByIdAndSeason(game.getLeagueId(), game.getSeason());
+            if(!allPasswordLeagues.contains(league))
+                allPasswordLeagues.add(league);
+        }
 
         appDatabase.getAllCheckedGames().observe(this, new Observer<List<Game>>() {
             @Override
@@ -226,6 +258,8 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
             }
         });
     }
+
+
     public void setInfo(){
 
         try{
@@ -321,7 +355,7 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
         switch (item.getItemId()) {
             case R.id.nav_logout:
                 appDatabase.removeUser(loggedInUser);
-                Intent intent = new Intent(this, MainActivity.class);
+                Intent intent = new Intent(this, SplashScreen.class);
                 startActivity(intent);
                 getBaseContext().getSharedPreferences("myKey", 0).edit().clear().commit();
                 appDatabase.clearAllTables();
@@ -356,7 +390,7 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
     }
 
     public void allGame(View view) {
-        LeagueFragment allGamesFragment = new LeagueFragment();
+        AllGamesFragmentActivity allGamesFragment = new AllGamesFragmentActivity();
         Bundle args = new Bundle();
         args.putSerializable("allGamesLeaguesId",(Serializable)allGamesLeaguesId);
         args.putString("allGamesLeaguesIdBundle",args.toString());
@@ -364,35 +398,43 @@ public class MainActivity extends AppCompatActivity implements IOnBackPressed {
         appViewModel.showFragment(allGamesFragment, view);
     }
     public void schrodinger(View view) {
-        LeagueFragment allGamesFragment = new LeagueFragment();
+        SchrodingerFragmentActivity schrodingerFragment = new SchrodingerFragmentActivity();
         Bundle args = new Bundle();
         args.putSerializable("allSchrodingerLeaguesId", (Serializable)allSchrodingerLeaguesId);
         args.putString("schrodingerargs",args.toString());
-        allGamesFragment.setArguments(args);
-        appViewModel.showFragment(allGamesFragment, view);
+        schrodingerFragment.setArguments(args);
+        appViewModel.showFragment(schrodingerFragment, view);
 
     }
     public void table(View view) {
-        LeagueFragment allGamesFragment = new LeagueFragment();
+        TableFragmentActivity tableFragment = new TableFragmentActivity();
         Bundle args = new Bundle();
         args.putSerializable("allGamesLeaguesId",(Serializable)allGamesLeaguesId);
         args.putString("tableargs",args.toString());
-        allGamesFragment.setArguments(args);
-        appViewModel.showFragment(allGamesFragment, view);
+        tableFragment.setArguments(args);
+        appViewModel.showFragment(tableFragment, view);
 
     }
     public void passwords(View view) {
         int isInvinsible = 0;
-        LeagueFragment allGamesFragment = new LeagueFragment();
+        PasswordsFragmentActivity passwordFragment = new PasswordsFragmentActivity();
         Bundle args = new Bundle();
-        args.putSerializable("allPasswordLeaguesId",(Serializable)allPasswordLeaguesId);
-        args.putString("allPasswordLeaguesIdBundle",args.toString());
+        args.putSerializable("allPasswordLeagues",(Serializable)allPasswordLeagues);
         args.putInt("isInvinsible", isInvinsible);
-        allGamesFragment.setArguments(args);
-        appViewModel.showFragment(allGamesFragment, view);
+        passwordFragment.setArguments(args);
+        appViewModel.showFragment(passwordFragment, view);
 
     }
-
+    @Override
+    public void onStart() {
+        super.onStart();
+        ActiveActivitiesTracker.activityStarted(this.getBaseContext());
+    }
+    @Override
+    public void onStop() {
+        super.onStop();
+        ActiveActivitiesTracker.activityStopped();
+    }
     @Override
     public void onBackPressed() {
         super.onBackPressed();

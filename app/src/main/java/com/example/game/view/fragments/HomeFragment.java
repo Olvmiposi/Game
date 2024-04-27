@@ -17,6 +17,7 @@ import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,6 +37,7 @@ import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
 import com.example.game.service.MainMenuActivityService;
 import com.example.game.view.MainActivity;
+import com.example.game.view.PredictionsActivity;
 import com.example.game.viewModel.AppViewModel;
 
 import java.io.Serializable;
@@ -48,12 +50,9 @@ import java.util.Objects;
 
 public class HomeFragment extends Fragment implements IOnBackPressed {
 
-    private SearchView searchView;
-    private MenuItem searchMenuItem;
     private AppViewModel appViewModel;
     private ListAdapter adapter;
     private SwipeRefreshLayout mySwipeRefreshLayout;
-    private ArrayList<Integer> allGamesLeaguesId,allPasswordLeaguesId, homeScore, awayScore;
     private ListView listView;
     private League league;
     private String maxDate;
@@ -70,6 +69,7 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
 
         Toolbar mToolbar;
         setHasOptionsMenu(true);
+        setRetainInstance(true);
         mToolbar = (Toolbar) rootView.findViewById(R.id.toolbar_home);
         if (mToolbar != null) {
             ((AppCompatActivity) requireActivity()).setSupportActionBar(mToolbar);
@@ -79,6 +79,16 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
 
         mToolbar.inflateMenu(R.menu.main_menu);
 
+        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
+            @Override
+            public void handleOnBackPressed() {
+                // Handle the back button even
+                //Log.d("BACKBUTTON", "Back button clicks");
+            }
+        };
+
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), callback);
+
         return rootView;
         //return inflater.inflate(R.layout.activity_home, container, false);
     }
@@ -86,6 +96,7 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        setRetainInstance(true);
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
         appViewModel.init(getContext());
         appDatabase = AppDatabase.getAppDb(getContext());
@@ -100,7 +111,6 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
         onCompletion();
 
         Intent serviceintent = new Intent (getContext(), MainMenuActivityService.class);
-        //startService(serviceintent);
 
         mySwipeRefreshLayout.setOnRefreshListener(() -> {
             appViewModel.getTodayGame();
@@ -108,7 +118,6 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
             onCompletion();
             ((MainActivity) getActivity()).setInfo();
         });
-
 
 
         listView.setOnScrollListener(new AbsListView.OnScrollListener() {
@@ -130,11 +139,9 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
             public void onChanged(List<Game> games) {
                 if(games != null){
                     ArrayList<String> dates = new ArrayList<>();
-
                     for (Game game: games) {
                         dates.add(game.getDate());
                     }
-
                     try{
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");
@@ -158,16 +165,15 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
                                                 Game newGame = new Game();
                                                 newGame = (Game) adapter.getItem(position);
 
-                                                PredictionsFragment predictionsFragment = new PredictionsFragment();
-                                                Bundle args = new Bundle();
-                                                args.putSerializable("game",(Serializable)newGame);
-                                                predictionsFragment.setArguments(args);
-                                                appViewModel.addFragment(predictionsFragment, view);
+                                                Intent Intent = new Intent(getContext(), PredictionsActivity.class);
+                                                Bundle b = new Bundle();
+                                                b.putSerializable("game",(Serializable)newGame);
+                                                Intent.putExtras(b);
+                                                requireActivity().startActivity(Intent);
                                             }
                                         });
                                         adapter.notifyDataSetChanged();
                                     }else if(games.size() == 0){
-
                                         appDatabase.getGames().observe(getViewLifecycleOwner(), games1 ->{
                                             adapter = new ListAdapter(getActivity(), (ArrayList<Game>) games1, R.layout.today_game_rows);
                                             listView.setAdapter(adapter);
@@ -189,11 +195,6 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
             adapter.notifyDataSetChanged();
             mySwipeRefreshLayout.setRefreshing(false);
         }
-    }
-
-    @Override
-    public void onRefresh() {
-
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -221,7 +222,10 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
     }
 
     @Override
+    public void onRefresh() {
+
+    }
+    @Override
     public void onBackPressed() {
-        //appViewModel.backstackFragment(getView());
     }
 }

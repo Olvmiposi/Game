@@ -126,6 +126,7 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                     }
 
                     myPredictions.size();
+                    sizeEditText.setText(String.valueOf(myPredictions.size()));
 
                     filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows);
 
@@ -135,7 +136,7 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                     verifyGame_ListView.setAdapter(adapter);
                     adapter.setGames((ArrayList<Game>) adapter.getGames());
 
-                    sizeEditText.setText(String.valueOf(myPredictions.size()));
+
 
                 }catch (IndexOutOfBoundsException e){
 

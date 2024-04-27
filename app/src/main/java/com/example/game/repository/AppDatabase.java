@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
 @Database(entities = {
         User.class, Game.class, League.class, Usage.class, Info.class, SearchString.class,  Schrodinger.class, ClubStats.class},
-        version = 2, exportSchema = false)
+        version = 3, exportSchema = false)
 
 public abstract class AppDatabase extends RoomDatabase implements Serializable {
     private static final String DB_NAME = "app_db";
@@ -57,6 +57,8 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     private Game gamee;
     private List<Game> game1, game2, filteredGame1, filteredGame2,filteredGameHome, filteredGameAway;
     private ArrayList<Game> gameArrayList;
+    private ArrayList<League> leagueArrayList, leagues;
+    private List<Integer> leagueId;
     private List<SearchString> searchStrings;
     private ArrayList<Schrodinger> schrodingers;
     private Schrodinger schrodinger;
@@ -72,6 +74,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     private String stringMostHome, stringMostAway;
     private ArrayList<String> stringMostScore, mostOccurred;
     private int maxHome, minHome, maxAway, minAway, mostHome, mostAway;
+
 
     public static AppDatabase getAppDb(Context context) {
         if (appDatabase == null) {
@@ -620,6 +623,24 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
 
         return game1;
     }
+    public List<Game> getCheckedGamesByLatestDate2(int leagueId, int season) {
+
+        Thread thread = new Thread(() -> {
+            try {
+                game1 = gameDao().getCheckedGamesByLatestDate2(leagueId, season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return game1;
+    }
 
     public LiveData<List<Game>> getCheckedGamesByDate(String date, int leagueId) {
         Thread thread = new Thread(() -> {
@@ -671,7 +692,24 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return game;
     }
+    public ArrayList<Game> getAllCheckedGamesList() {
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().getAllCheckedGamesList();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gameArrayList;
+    }
 
+    // All checked games by home and away
     public ArrayList<Integer> getCheckedGamesByHomeAndAway(String home, String away) {
         homeScore = new ArrayList<>();
         awayScore = new ArrayList<>();
@@ -1048,6 +1086,28 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         return mostOccurred;
 
     }
+    public List<League> getGamesLeagues() {
+        leagues = new ArrayList<>();
+        Thread thread = new Thread(() -> {
+            try {
+                leagueId = gameDao().getGameLeagues();
+                for (int id: leagueId) {
+                    leagues.add(leagueDao().getLeagueById(id));
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return leagues;
+    }
+
     public ArrayList<Game> getAllCheckedGamesBySeason(int season) {
         Thread thread = new Thread(() -> {
             try {
@@ -1064,10 +1124,10 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return gameArrayList;
     }
-    public LiveData<List<Game>> getAllCheckedGamesByLeagueId(int leagueId) {
+    public LiveData<List<Game>> getAllCheckedGamesByLeagueId(int leagueId, int season) {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getAllCheckedGamesByLeagueId(leagueId);
+                game = gameDao().getAllCheckedGamesByLeagueId(leagueId, season);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1113,6 +1173,22 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return game;
     }
+    public List<Game> getGamePossibilitiesList(final int fixtureId) {
+        Thread thread = new Thread(() -> {
+            try {
+                game1 = (List<Game>) gameDao().getGamePossibilities(fixtureId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return game1;
+    }
     public List<Game> getGamePossibilitiess(final int fixtureId) {
         Thread thread = new Thread(() -> {
             try {
@@ -1139,13 +1215,18 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }).start();
     }
     public void removeGame(final Game game) {
-        new Thread( () -> {
-            try {
-                gameDao().delete(game);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+        try {
+            new Thread( () -> {
+                try {
+                    Thread.sleep(60000);
+                    gameDao().delete(game);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (Throwable e) {
+            throw e;
+        }
     }
     public void addLeague(final League league) {
         new Thread(() -> {
@@ -1192,11 +1273,44 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return league;
     }
+    public List<League> getLeaguesById(int leagueId) {
+        Thread thread = new Thread(() -> {
+            try {
+                leagueArrayList = (ArrayList<League>) leagueDao().getLeaguesById(leagueId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return leagueArrayList;
+    }
     public League getLeagueById(final int id) {
         final League[] league = new League[1];
         Thread thread = new Thread(() -> {
             try {
                 league[0] = leagueDao().getLeagueById(id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return league[0];
+    }
+    public League getLeagueByIdAndSeason(final int id, final int season) {
+        final League[] league = new League[1];
+        Thread thread = new Thread(() -> {
+            try {
+                league[0] = leagueDao().getLeagueByIdAndSeason(id, season);
             } catch (Exception e) {
                 e.printStackTrace();
             }

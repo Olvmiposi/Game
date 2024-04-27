@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.game.R;
 import com.example.game.databinding.LoginActivityBinding;
 import com.example.game.response.LoginResponse;
+import com.example.game.view.ActiveActivitiesTracker;
 import com.example.game.viewModel.AppViewModel;
 
 public class Login extends Fragment {
@@ -44,11 +45,11 @@ public class Login extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        //ActiveActivitiesTracker.activityStarted(this.getContext());
+        ActiveActivitiesTracker.activityStarted(this.getContext());
     }
     @Override
     public void onStop() {
         super.onStop();
-        //ActiveActivitiesTracker.activityStopped();
+        ActiveActivitiesTracker.activityStopped();
     }
 }

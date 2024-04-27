@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/home"
+        android:icon="@drawable/home_24"
+        android:title="Home" />
+
+    <item
+        android:id="@+id/callApi"
+        android:icon="@drawable/call_24"
+        android:title="Call API" />
+
+    <item
+        android:id="@+id/bet"
+        android:icon="@drawable/dice"
+        android:title="Bet" />
+    <item
+        android:id="@+id/schrodinger"
+        android:icon="@drawable/cat"
+        android:title="Schrodinger" />
+
+    <item
+        android:id="@+id/table"
+        android:icon="@drawable/table"
+        android:title="Table" />
+<!--    <item-->
+<!--        android:id="@+id/password"-->
+<!--        android:icon="@drawable/green_gaming"-->
+<!--        android:title="Passwords" />-->
+
+<!--    <item-->
+<!--        android:id="@+id/allGames"-->
+<!--        android:icon="@drawable/red_gaming"-->
+<!--        android:title="All Games" />-->
+
+</menu>

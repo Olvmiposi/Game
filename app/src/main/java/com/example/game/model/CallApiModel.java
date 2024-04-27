@@ -1,6 +1,7 @@
 package com.example.game.model;
 
 import androidx.room.ColumnInfo;
+import androidx.room.PrimaryKey;
 
 import com.google.gson.annotations.SerializedName;
 

@@ -43,27 +43,16 @@ import java.util.Date;
 import java.util.List;
 
 public class BetFragment extends DialogFragment implements IOnBackPressed {
-    private SearchView searchView;
-    private MenuItem searchMenuItem;
     private AppViewModel appViewModel;
     private BetAdapter adapter;
-    private ArrayList<Integer> allGamesLeaguesId,allPasswordLeaguesId, homeScore, awayScore;
-    private AlertDialog alertDialog;
-    private AlertDialog.Builder builder;
-    private ListAdapter listAdapter;
     private SwipeRefreshLayout mySwipeRefreshLayout;
     private ListView bets_listView;
     private AppDatabase appDatabase;
 
     private Button generateRB;
     private EditText no_games, dateEditText;
-
     private Bet bet;
     private ProgressBar progressBar;
-
-    public static BetFragment newInstance() {
-        return new BetFragment();
-    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -106,36 +95,6 @@ public class BetFragment extends DialogFragment implements IOnBackPressed {
         no_games.setText(String.valueOf(no));
         dateEditText.setText(currentDateTime);
 
-        //get all league id from available games
-        allGamesLeaguesId = new ArrayList<>();
-        allPasswordLeaguesId = new ArrayList<>();
-
-        appDatabase.getGames().observe(getViewLifecycleOwner(), new Observer<List<Game>>() {
-            @Override
-            public void onChanged(List<Game> games) {
-                if(games == null){
-                }else {
-                    for(Game game : games ) {
-                        if(!allGamesLeaguesId.contains(game.getLeagueId()))
-                            allGamesLeaguesId.add(game.getLeagueId());
-                    }
-                }
-            }
-        });
-
-        appDatabase.getAllCheckedGames().observe(getViewLifecycleOwner(), new Observer<List<Game>>() {
-            @Override
-            public void onChanged(List<Game> games) {
-                if(games == null){
-                }else {
-                    for(Game game : games ) {
-                        if(!allPasswordLeaguesId.contains(game.getLeagueId()))
-                            allPasswordLeaguesId.add(game.getLeagueId());
-                    }
-                }
-            }
-        });
-
         generateRB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -154,8 +113,6 @@ public class BetFragment extends DialogFragment implements IOnBackPressed {
                 }
             }
         });
-
-
 
         appViewModel.isLoading().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
             @Override
@@ -197,56 +154,9 @@ public class BetFragment extends DialogFragment implements IOnBackPressed {
                     adapter.setGames((ArrayList<BetResponse>) arrayLists);
                     adapter.notifyDataSetChanged();
                     onCompletion();
-
-
-//                    bets_listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//                        @Override
-//                        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//                            ArrayList<Game> selectedgame = adapter.getGames().get(position).getGames();
-//
-//                            LayoutInflater inflater = ((MainActivity)requireActivity()).getLayoutInflater();
-//                            View newconvertView = (View) inflater.inflate(R.layout.dialog_main, parent, false);
-//
-//                            builder = new AlertDialog.Builder(getContext())
-//                                    .setNegativeButton("Cancel", (dialog, which) -> {dialog.cancel();dialog.dismiss();});
-//
-//
-//                            builder.setTitle("Group " + (Integer.valueOf(position) + 1));
-//                            builder.setView(newconvertView);
-//                            ListView lv = (ListView) newconvertView.findViewById(R.id.dialogListView);
-//                            listAdapter = new ListAdapter(getActivity(), (ArrayList<Game>) selectedgame,  R.layout.bets_rows);
-//                            lv.setAdapter(listAdapter);
-//                            listAdapter.setGames((ArrayList<Game>) selectedgame);
-//                            listAdapter.notifyDataSetChanged();
-//
-//
-//
-//                            lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//                                @Override
-//                                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//                                    Game newGame = new Game();
-//                                    newGame = (Game) selectedgame.get(position);
-//
-//                                    PredictionsFragment predictionsFragment = new PredictionsFragment();
-//                                    Bundle args = new Bundle();
-//                                    args.putSerializable("game",(Serializable)newGame);
-//                                    predictionsFragment.setArguments(args);
-//                                    appViewModel.addFragment(predictionsFragment, view);
-//                                    alertDialog.dismiss();
-//                                }
-//                            });
-//
-//                            alertDialog = builder.create();
-//                            alertDialog.show();
-//                            alertDialog.setCanceledOnTouchOutside(true);
-//                            alertDialog.setCancelable(true);
-//                        }
-//                    });
                 }
             }
         });
-
-
 
     }
     public void onCompletion() {
@@ -276,7 +186,6 @@ public class BetFragment extends DialogFragment implements IOnBackPressed {
 
     @Override
     public void onBackPressed() {
-        //appViewModel.backstackFragment(getView());
     }
 
 }

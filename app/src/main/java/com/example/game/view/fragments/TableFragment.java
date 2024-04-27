@@ -18,6 +18,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
@@ -31,6 +32,7 @@ import com.example.game.model.Game;
 import com.example.game.model.League;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
+import com.example.game.view.ActiveActivitiesTracker;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
@@ -47,7 +49,6 @@ public class TableFragment extends Fragment implements IOnBackPressed {
     private AppViewModel appViewModel;
     private TableAdapter adapter;
     private SwipeRefreshLayout mySwipeRefreshLayout;
-    private ArrayList<Integer> allGamesLeaguesId,allPasswordLeaguesId, homeScore, awayScore;
     private ListView listView;
     private League league;
     private String maxDate;
@@ -63,6 +64,7 @@ public class TableFragment extends Fragment implements IOnBackPressed {
         return inflater.inflate(R.layout.activity_table, container, false);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -84,54 +86,24 @@ public class TableFragment extends Fragment implements IOnBackPressed {
 
         bundle = getArguments();
 
+
         int leagueId = bundle.getInt("leagueId", 0);
         int season = bundle.getInt("season", 0);
 
         try{
             league = new League();
 
-            league = appDatabase.getLeagueById(leagueId);
+            league = appDatabase.getLeagueByIdAndSeason(leagueId, season);
 
             table = new ArrayList<ClubStats>();
 
             tableName.setText(league.getName());
 
-            table = appDatabase.getTable(league.getId());
+            table = appDatabase.getTable(league.getLeagueId());
 
         }catch (NullPointerException e){}
 
 
-
-
-        //get all league id from available games
-        allGamesLeaguesId = new ArrayList<>();
-        allPasswordLeaguesId = new ArrayList<>();
-
-        appDatabase.getGames().observe(getViewLifecycleOwner(), new Observer<List<Game>>() {
-            @Override
-            public void onChanged(List<Game> games) {
-                if(games == null){
-                }else {
-                    for(Game game : games ) {
-                        if(!allGamesLeaguesId.contains(game.getLeagueId()))
-                            allGamesLeaguesId.add(game.getLeagueId());
-                    }
-                }
-            }
-        });
-
-        appDatabase.getAllCheckedGames().observe(getViewLifecycleOwner(), new Observer<List<Game>>() {
-            @Override
-            public void onChanged(List<Game> games) {
-                if(games == null){
-                }else {
-                    for(Game game : games ) {
-                        if(!allPasswordLeaguesId.contains(game.getLeagueId()))
-                            allPasswordLeaguesId.add(game.getLeagueId());
-                    }
-                }
-            }
-        });
 
         listView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
@@ -146,14 +118,12 @@ public class TableFragment extends Fragment implements IOnBackPressed {
 
 
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm", Locale.US);
-            table.sort((ClubStats e1, ClubStats e2) -> e1.getDateTime().compareTo(e2.getDateTime()));
-        }
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm", Locale.US);
+        table.sort((ClubStats e1, ClubStats e2) -> e1.getDateTime().compareTo(e2.getDateTime()));
 
         try{
             maxDate = table.get(table.size() - 1).getDateTime();
-            newTable = appDatabase.getTableByDate(league.getId(), maxDate );
+            newTable = appDatabase.getTableByDate(league.getLeagueId(), maxDate );
             adapter = new TableAdapter(getActivity(),newTable, R.layout.tablestats_row );
             listView.setAdapter(adapter);
             adapter.setClubStats((ArrayList<ClubStats>) newTable);
@@ -162,7 +132,16 @@ public class TableFragment extends Fragment implements IOnBackPressed {
 
 
     }
-
+    @Override
+    public void onStart() {
+        super.onStart();
+        ActiveActivitiesTracker.activityStarted(this.getContext());
+    }
+    @Override
+    public void onStop() {
+        super.onStop();
+        ActiveActivitiesTracker.activityStopped();
+    }
     @Override
     public void onRefresh() {
         mySwipeRefreshLayout.setOnRefreshListener(() -> {
@@ -176,8 +155,8 @@ public class TableFragment extends Fragment implements IOnBackPressed {
 
     @Override
     public void onBackPressed() {
-        appViewModel.backstackFragment(getView());
-        Toast.makeText(getContext(),"SchrodingerFragment back button pressed",Toast.LENGTH_LONG).show();
+//        appViewModel.backstackFragment(getView());
+//        Toast.makeText(getContext(),"SchrodingerFragment back button pressed",Toast.LENGTH_LONG).show();
 
     }
 }

@@ -216,14 +216,20 @@ public class ListAdapter extends BaseAdapter {
                 @Override
                 public void onClick(View v) {
 
-                    Game newGame = new Game();
+                    //Game newGame = new Game();
                     newGame = (Game) getItem(position);
 
-                    PredictionsFragment predictionsFragment = new PredictionsFragment();
-                    Bundle args = new Bundle();
-                    args.putSerializable("game",(Serializable)newGame);
-                    predictionsFragment.setArguments(args);
-                    appViewModel.addFragment(predictionsFragment, v);
+                    Intent Intent = new Intent(context, PredictionsActivity.class);
+                    Bundle b = new Bundle();
+                    b.putSerializable("game",(Serializable)newGame);
+                    Intent.putExtras(b);
+                    context.startActivity(Intent);
+
+//                    PredictionsFragment predictionsFragment = new PredictionsFragment();
+//                    Bundle args = new Bundle();
+//                    args.putSerializable("game",(Serializable)newGame);
+//                    predictionsFragment.setArguments(args);
+//                    appViewModel.addFragment(predictionsFragment, v);
 
                 }
             });

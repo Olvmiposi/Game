@@ -1,6 +1,7 @@
 package com.example.game.adapter;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ public class YearRecyclerViewAdapter extends RecyclerView.Adapter<YearRecyclerVi
 
     private List<Integer> mYears;
     private LayoutInflater mInflater;
+    private int selected_position;
     private ItemClickListener mClickListener;
 
     // data is passed into the constructor
@@ -38,6 +40,9 @@ public class YearRecyclerViewAdapter extends RecyclerView.Adapter<YearRecyclerVi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         int year = mYears.get(position);
         holder.myTextView.setText(String.valueOf(year));
+
+        // Here I am just highlighting the background
+        holder.itemView.setBackgroundColor(selected_position == position ? Color.parseColor("#34833C") : Color.TRANSPARENT);
     }
 
     // total number of rows
@@ -48,6 +53,14 @@ public class YearRecyclerViewAdapter extends RecyclerView.Adapter<YearRecyclerVi
     // convenience method for getting data at click position
     public int getItem(int id) {
         return mYears.get(id);
+    }
+
+    public int getSelected_position() {
+        return selected_position;
+    }
+
+    public void setSelected_position(int selected_position) {
+        this.selected_position = selected_position;
     }
 
     // allows clicks events to be caught
@@ -69,11 +82,20 @@ public class YearRecyclerViewAdapter extends RecyclerView.Adapter<YearRecyclerVi
             super(itemView);
             myTextView = itemView.findViewById(R.id.tvYear);
             itemView.setOnClickListener(this);
+
         }
 
         @Override
         public void onClick(View view) {
-            if (mClickListener != null) mClickListener.onItemClick(view, getAdapterPosition());
+            if (mClickListener != null)
+                mClickListener.onItemClick(view, getAdapterPosition());
+
+            if (getAdapterPosition() == RecyclerView.NO_POSITION) return;
+
+            // Updating old as well as new positions
+            notifyItemChanged(selected_position);
+            selected_position = getAdapterPosition();
+            notifyItemChanged(selected_position);
         }
     }
 }

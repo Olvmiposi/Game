@@ -49,20 +49,11 @@ public class SplashScreen extends AppCompatActivity {
         askNotificationPermission();
         mainMenuBtn = findViewById(R.id.mainMenuBtn);
 
+        View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
+
         if(appDatabase.getLoggedInUser() == null){
             Login login = new Login();
-            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-            ft.replace(R.id.layout_placeholder, login, login.getClass().getName());
-            ft.commit();
-
-//            try{
-//
-//                appViewModel.showFragment(login, getCurrentFocus().getRootView());
-//
-//            }catch (NullPointerException e){
-//
-//            }
-
+            appViewModel.showFragment(login, rootView);
 
         }
         else {
@@ -100,17 +91,15 @@ public class SplashScreen extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-        //ActiveActivitiesTracker.activityStarted(this.getBaseContext());
+        ActiveActivitiesTracker.activityStarted(this.getBaseContext());
     }
     @Override
     public void onStop() {
         super.onStop();
-        appViewModel = null;
-        //ActiveActivitiesTracker.activityStopped();
+        ActiveActivitiesTracker.activityStopped();
     }
     public void onPause() {
         super.onPause();
-        appViewModel = null;
         //ActiveActivitiesTracker.activityStopped();
     }
 }

@@ -22,6 +22,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.RequiresApi;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.game.R;
@@ -29,6 +30,7 @@ import com.example.game.model.ClubStats;
 import com.example.game.model.Game;
 import com.example.game.repository.AppDatabase;
 import com.example.game.view.MainActivity;
+import com.example.game.view.PredictionsActivity;
 import com.example.game.view.fragments.PredictionsFragment;
 import com.example.game.viewModel.AppViewModel;
 
@@ -91,6 +93,7 @@ public class SchrodingerAdapter extends BaseAdapter {
     public long getItemId(int position) {
         return position;
     }
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         sort();
@@ -161,64 +164,62 @@ public class SchrodingerAdapter extends BaseAdapter {
             down_arrow2.setVisibility(VISIBLE);
 
             table = appDatabase.getTable(currentGame.getLeagueId());
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            DateTimeFormatter dtf = new DateTimeFormatterBuilder()
+                    .parseCaseInsensitive()
+                    .appendPattern("MM/dd/yyyy HH:mm")
+                    .toFormatter();
+            table.sort((ClubStats e1, ClubStats e2) -> e1.getDateTime().compareTo(e2.getDateTime()));
 
-                DateTimeFormatter dtf = new DateTimeFormatterBuilder()
-                        .parseCaseInsensitive()
-                        .appendPattern("MM/dd/yyyy HH:mm")
-                        .toFormatter();
-                table.sort((ClubStats e1, ClubStats e2) -> e1.getDateTime().compareTo(e2.getDateTime()));
+            headers.setVisibility(View.GONE);
+            try {
 
-                headers.setVisibility(View.GONE);
-                try {
+                List<String> outList = filteredList.stream().map(Game::getDate).distinct().collect(Collectors.toList());
 
-                    List<String> outList = filteredList.stream().map(Game::getDate).distinct().collect(Collectors.toList());
+                for (int i = 0; i < outList.size(); i++) {
+                    if (currentGame.getDate() == outList.get(i)) {
+                        headers.setVisibility(VISIBLE);
 
-                    for (int i = 0; i < outList.size(); i++) {
-                        if (currentGame.getDate() == outList.get(i)) {
-                            headers.setVisibility(VISIBLE);
+                        SimpleDateFormat format1 = new SimpleDateFormat("MM/dd/yyyy");
+                        SimpleDateFormat format2 = new SimpleDateFormat("MMMM d, yyyy");
+                        Date date = null;
 
-                            SimpleDateFormat format1 = new SimpleDateFormat("MM/dd/yyyy");
-                            SimpleDateFormat format2 = new SimpleDateFormat("MMMM d, yyyy");
-                            Date date = null;
-
-                            date = format1.parse(currentGame.getDate());
-                            headers.setText(format2.format(date));
+                        date = format1.parse(currentGame.getDate());
+                        headers.setText(format2.format(date));
 
 
-                            break;
-                        }
+                        break;
                     }
-                } catch (ParseException | RuntimeException e) {
-                    //throw new RuntimeException(e);
                 }
-
-                try{
-                    maxDate = table.get(table.size() - 1).getDateTime();
-
-                    homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getHome());
-                    awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getAway());
-
-                    position1.setText(String.valueOf(homePosition.getPosition()));
-                    position2.setText(String.valueOf(awayPosition.getPosition()));
-
-                    if(homePosition.getPosition() > awayPosition.getPosition()){
-                        pointDifference.setText(String.valueOf(awayPosition.getPoints() - homePosition.getPoints()));
-                        up_arrow2.setVisibility(VISIBLE);
-                        down_arrow1.setVisibility(VISIBLE);
-                        up_arrow1.setVisibility(INVISIBLE);
-                        down_arrow2.setVisibility(INVISIBLE);
-                    }if (awayPosition.getPosition() > homePosition.getPosition()){
-                        pointDifference.setText(String.valueOf(homePosition.getPoints() - awayPosition.getPoints()));
-                        up_arrow1.setVisibility(VISIBLE);
-                        down_arrow2.setVisibility(VISIBLE);
-                        up_arrow2.setVisibility(INVISIBLE);
-                        down_arrow1.setVisibility(INVISIBLE);
-                    }
-                }catch(IndexOutOfBoundsException | NullPointerException e){
-
-                }
+            } catch (ParseException | RuntimeException e) {
+                //throw new RuntimeException(e);
             }
+
+            try{
+                maxDate = table.get(table.size() - 1).getDateTime();
+
+                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getHome());
+                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getAway());
+
+                position1.setText(String.valueOf(homePosition.getPosition()));
+                position2.setText(String.valueOf(awayPosition.getPosition()));
+
+                if(homePosition.getPosition() > awayPosition.getPosition()){
+                    pointDifference.setText(String.valueOf(awayPosition.getPoints() - homePosition.getPoints()));
+                    up_arrow2.setVisibility(VISIBLE);
+                    down_arrow1.setVisibility(VISIBLE);
+                    up_arrow1.setVisibility(INVISIBLE);
+                    down_arrow2.setVisibility(INVISIBLE);
+                }if (awayPosition.getPosition() > homePosition.getPosition()){
+                    pointDifference.setText(String.valueOf(homePosition.getPoints() - awayPosition.getPoints()));
+                    up_arrow1.setVisibility(VISIBLE);
+                    down_arrow2.setVisibility(VISIBLE);
+                    up_arrow2.setVisibility(INVISIBLE);
+                    down_arrow1.setVisibility(INVISIBLE);
+                }
+            }catch(IndexOutOfBoundsException | NullPointerException e){
+
+            }
+
         }
         if(layout == (R.layout.schrodinger_activity_rows))
         {
@@ -272,13 +273,19 @@ public class SchrodingerAdapter extends BaseAdapter {
                         public void onClick(View v) {
 
                             Game newGame = new Game();
-                            newGame = getGames().get(position);
+                            newGame = filteredList.get(position);
 
-                            PredictionsFragment predictionsFragment = new PredictionsFragment();
-                            Bundle args = new Bundle();
-                            args.putSerializable("game",(Serializable)newGame);
-                            predictionsFragment.setArguments(args);
-                            appViewModel.showFragment(predictionsFragment, v);
+                            Intent Intent = new Intent(context, PredictionsActivity.class);
+                            Bundle b = new Bundle();
+                            b.putSerializable("game",(Serializable)newGame);
+                            Intent.putExtras(b);
+                            context.startActivity(Intent);
+
+//                            PredictionsFragment predictionsFragment = new PredictionsFragment();
+//                            Bundle args = new Bundle();
+//                            args.putSerializable("game",(Serializable)newGame);
+//                            predictionsFragment.setArguments(args);
+//                            appViewModel.showFragment(predictionsFragment, v);
 
                         }
                     });
@@ -289,12 +296,19 @@ public class SchrodingerAdapter extends BaseAdapter {
                         public void onClick(View v) {
 
                             Game newGame = new Game();
-                            newGame = getGames().get(position);
-                            PredictionsFragment predictionsFragment = new PredictionsFragment();
-                            Bundle args = new Bundle();
-                            args.putSerializable("game",(Serializable)newGame);
-                            predictionsFragment.setArguments(args);
-                            appViewModel.showFragment(predictionsFragment, v);
+                            newGame = filteredList.get(position);
+
+                            Intent Intent = new Intent(context, PredictionsActivity.class);
+                            Bundle b = new Bundle();
+                            b.putSerializable("game",(Serializable)newGame);
+                            Intent.putExtras(b);
+                            context.startActivity(Intent);
+
+//                            PredictionsFragment predictionsFragment = new PredictionsFragment();
+//                            Bundle args = new Bundle();
+//                            args.putSerializable("game",(Serializable)newGame);
+//                            predictionsFragment.setArguments(args);
+//                            appViewModel.showFragment(predictionsFragment, v);
 
                         }
                     });
@@ -307,7 +321,7 @@ public class SchrodingerAdapter extends BaseAdapter {
                 @Override
                 public boolean onLongClick(View v) {
                     Game selectedgame = new Game();
-                    selectedgame = (Game) getItem(position);
+                    selectedgame = (Game) filteredList.get(position);
 
                     AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
                     builder.setMessage("Remove Schrodinger ? \n" +
@@ -321,6 +335,7 @@ public class SchrodingerAdapter extends BaseAdapter {
                         finalSelectedgame.setSchrodinger(0);
                         appViewModel.verifyGame(v, finalSelectedgame, finalSelectedgame.getId());
                         getGames().remove(finalSelectedgame);
+                        filteredList.remove(finalSelectedgame);
                         notifyDataSetChanged();
                     });
                     builder.setNegativeButton("No", (DialogInterface.OnClickListener) (dialog, which) -> {
@@ -369,16 +384,25 @@ public class SchrodingerAdapter extends BaseAdapter {
                     }else{
                         lLayout.setBackgroundColor(Color.parseColor("#F9AA33"));//yellow
                     }
+                    //newGame = filteredList.get(position);
                     convertView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
 
+                            Game newGame = new Game();
                             newGame = filteredList.get(position);
-                            PredictionsFragment predictionsFragment = new PredictionsFragment();
-                            Bundle args = new Bundle();
-                            args.putSerializable("game",(Serializable)newGame);
-                            predictionsFragment.setArguments(args);
-                            appViewModel.addFragment(predictionsFragment, v);
+
+                            Intent Intent = new Intent(context, PredictionsActivity.class);
+                            Bundle b = new Bundle();
+                            b.putSerializable("game",(Serializable)newGame);
+                            Intent.putExtras(b);
+                            context.startActivity(Intent);
+
+//                            PredictionsFragment predictionsFragment = new PredictionsFragment();
+//                            Bundle args = new Bundle();
+//                            args.putSerializable("game",(Serializable)newGame);
+//                            predictionsFragment.setArguments(args);
+//                            appViewModel.addFragment(predictionsFragment, v);
 
                         }
                     });
@@ -392,12 +416,12 @@ public class SchrodingerAdapter extends BaseAdapter {
                 @Override
                 public void onClick(View v) {
                     Game selectedgame = new Game();
-                    selectedgame = ((Game) getItem(position));
+                    selectedgame = ((Game) filteredList.get(position));
                     selectedgame.getScore1();
                     AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
                     builder.setMessage("Is this the schrodinger result ? " + selectedgame.getUsername() + "  \n" +
-                            selectedgame.getHome() + " " +  selectedgame.getScore1() + " VS " +
-                            selectedgame.getScore2() + " " + selectedgame.getAway());
+                            selectedgame.getHome() + " " +  selectedgame.getScore1() + " \n " +
+                            selectedgame.getAway()  + " " + selectedgame.getScore2());
                     builder.setTitle("Alert !");
                     builder.setCancelable(false);
                     Game finalSelectedGame = selectedgame;
@@ -491,6 +515,8 @@ public class SchrodingerAdapter extends BaseAdapter {
                 ArrayList<Game> tempList = new ArrayList<Game>();
                 for (Game game : games) {
                     if ( game.getUsername().toLowerCase().contains(constraint.toString().toLowerCase())
+                            || game.getHome().toLowerCase().contains(constraint.toString().toLowerCase())
+                            || game.getAway().toLowerCase().contains(constraint.toString().toLowerCase())
                     ){
                         tempList.add(game);
                     }

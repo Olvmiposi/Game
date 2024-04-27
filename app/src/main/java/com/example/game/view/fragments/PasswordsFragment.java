@@ -32,6 +32,7 @@ import com.example.game.adapter.SearchAdapter;
 import com.example.game.model.Game;
 import com.example.game.model.SearchString;
 import com.example.game.repository.AppDatabase;
+import com.example.game.view.ActiveActivitiesTracker;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 import com.example.game.service.IOnBackPressed;
@@ -54,7 +55,7 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
     private Button showMore;
     private Bundle bundle;
     private final ArrayList<Game> gamesList = new ArrayList<Game>();
-    private int leagueId;
+    private int leagueId, season;
     private ListView todayUsernameList_View;
 
     @Override
@@ -71,17 +72,17 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
         appViewModel.init(getContext());
         appDatabase = AppDatabase.getAppDb(getContext());
-        todayUsernameList_View  = getView().findViewById(R.id.todayUsernameList_View);
-        mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
-        textView = getView().findViewById(R.id.textView);
+        todayUsernameList_View  = requireView().findViewById(R.id.todayUsernameList_View);
+        mySwipeRefreshLayout = requireView().findViewById(R.id.swiperefresh);
+        textView = requireView().findViewById(R.id.textView);
+        showMore = requireView().findViewById(R.id.showMore);
 
-        showMore = getView().findViewById(R.id.showMore);
-        ((MainActivity) getActivity()).disableSwipe();
-        //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
+        ((MainActivity) requireActivity()).disableSwipe();
         bundle = getArguments();
 
         isInvinsible = bundle.getInt("isInvinsible", 0);
         leagueId = bundle.getInt("leagueId", 0);
+        season = bundle.getInt("season", 0);
         league =  bundle.getString("league");
         maxDate = bundle.getString("maxDate");
 
@@ -94,7 +95,6 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
         mToolbar.setTitle(null);
 
         mToolbar.inflateMenu(R.menu.options_menu);
-
 
         showMore.setText("Load More...");
 
@@ -144,11 +144,10 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
                 todayUsernameList_View.setAdapter(null);
             }
 
-            //highest.setText();
         });
     }
     public void getAllCheckedGamesByLeagueId(){
-        appDatabase.getAllCheckedGamesByLeagueId(leagueId).observe(this, games -> {
+        appDatabase.getAllCheckedGamesByLeagueId(leagueId, season).observe(this, games -> {
             adapter = new PasswordAdapter(getActivity(), (ArrayList<Game>) games, R.layout.passwords_rows, isInvinsible);
             todayUsernameList_View.setAdapter(adapter);
             adapter.setGames((ArrayList<Game>) games);
@@ -165,27 +164,6 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
         if (mySwipeRefreshLayout.isRefreshing()) {
             mySwipeRefreshLayout.setRefreshing(false);
         }
-    }
-    @Override
-    public void onStart() {
-        super.onStart();
-        //ActiveActivitiesTracker.activityStarted(this.getBaseContext());
-    }
-    @Override
-    public void onStop() {
-        super.onStop();
-        //ActiveActivitiesTracker.activityStopped();
-    }
-
-    @Override
-    public void onResume(){
-        super.onResume();
-    }
-
-    @Override
-    public void onRefresh() {
-
-
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -238,7 +216,6 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
                 searchView.setQueryHint("MM/DD/YYYY, password, club");
                 searchView.requestFocus();
 
-
                 searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                     @Override
                     public boolean onQueryTextSubmit(String query) {
@@ -282,9 +259,28 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        ActiveActivitiesTracker.activityStarted(this.getContext());
+    }
+    @Override
+    public void onStop() {
+        super.onStop();
+        ActiveActivitiesTracker.activityStopped();
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+    }
+
+    @Override
+    public void onRefresh() {
+
+    }
+    @Override
     public void onBackPressed() {
-        appViewModel.backstackFragment(getView());
-        Toast.makeText(getContext(),"PasswordFragment back button pressed",Toast.LENGTH_LONG).show();
+//        appViewModel.backstackFragment(getView());
     }
 
 }

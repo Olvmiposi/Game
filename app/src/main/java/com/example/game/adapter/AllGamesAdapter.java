@@ -5,6 +5,7 @@ import static android.view.View.VISIBLE;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -24,6 +25,7 @@ import com.example.game.model.ClubStats;
 import com.example.game.model.Game;
 import com.example.game.repository.AppDatabase;
 import com.example.game.view.MainActivity;
+import com.example.game.view.PredictionsActivity;
 import com.example.game.view.fragments.PredictionsFragment;
 import com.example.game.viewModel.AppViewModel;
 
@@ -201,11 +203,16 @@ public class AllGamesAdapter extends BaseAdapter implements Filterable {
                 public void onClick(View v) {
 
                     newGame = (Game) filteredList.get(position);
-                    PredictionsFragment predictionsFragment = new PredictionsFragment();
-                    Bundle args = new Bundle();
-                    args.putSerializable("game",(Serializable)newGame);
-                    predictionsFragment.setArguments(args);
-                    appViewModel.addFragment(predictionsFragment, v);
+                    Intent Intent = new Intent(context, PredictionsActivity.class);
+                    Bundle b = new Bundle();
+                    b.putSerializable("game",(Serializable)newGame);
+                    Intent.putExtras(b);
+                    context.startActivity(Intent);
+//                    PredictionsFragment predictionsFragment = new PredictionsFragment();
+//                    Bundle args = new Bundle();
+//                    args.putSerializable("game",(Serializable)newGame);
+//                    predictionsFragment.setArguments(args);
+//                    appViewModel.addFragment(predictionsFragment, v);
 
                 }
             });

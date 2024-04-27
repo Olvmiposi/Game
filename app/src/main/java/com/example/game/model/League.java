@@ -16,12 +16,18 @@ import java.io.Serializable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class League implements Serializable {
 
-    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
     @SerializedName("id")
     @Expose
     @ColumnInfo
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
     private int id;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @SerializedName("leagueId")
+    @Expose
+    @ColumnInfo
+    private int leagueId;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @SerializedName("name")
@@ -88,5 +94,32 @@ public class League implements Serializable {
 
     public void setEnd(String end) {
         this.end = end;
+    }
+
+    public int getLeagueId() {
+        return leagueId;
+    }
+
+    public void setLeagueId(int leagueId) {
+        this.leagueId = leagueId;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        // TODO Auto-generated method stub
+        if(obj instanceof League)
+        {
+            League temp = (League) obj;
+            if(this.leagueId == temp.leagueId && this.season == temp.season && this.start.equals(temp.start) && this.end.equals(temp.end) && this.name.equals(temp.name))
+                return true;
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        // TODO Auto-generated method stub
+
+        return (this.name.hashCode() + this.start.hashCode() + this.end.hashCode() + this.name.hashCode());
     }
 }

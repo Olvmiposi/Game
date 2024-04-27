@@ -1,9 +1,9 @@
 package com.example.game.view.fragments;
 
-import android.annotation.SuppressLint;
+import static android.widget.AbsListView.OnScrollListener.SCROLL_STATE_IDLE;
+
 import android.app.SearchManager;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.view.LayoutInflater;
@@ -14,10 +14,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -28,85 +28,132 @@ import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.game.R;
-import com.example.game.adapter.AllGamesAdapter;
-import com.example.game.adapter.SearchAdapter;
+import com.example.game.adapter.LeagueAdapter;
+import com.example.game.adapter.YearRecyclerViewAdapter;
 import com.example.game.model.Game;
-import com.example.game.model.SearchString;
+import com.example.game.model.League;
 import com.example.game.repository.AppDatabase;
-import com.example.game.service.IOnBackPressed;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
 import java.io.Serializable;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 
-public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsListView.OnScrollListener {
+public class TableFragmentActivity  extends Fragment implements YearRecyclerViewAdapter.ItemClickListener{
     private SearchView searchView;
     private MenuItem searchMenuItem;
     private AppViewModel appViewModel;
-    private AllGamesAdapter adapter;
-    private ArrayList<Game> gameArrayList;
-    private Parcelable state = null;
-    private static final String LIST_STATE = "listState";
+    private LeagueAdapter adapter;
+    private YearRecyclerViewAdapter yearRecyclerViewAdapter;
     int currentFirstVisibleItem, currentVisibleItemCount, currentTotalItemCount, currentScrollState;
+    private ArrayList<Integer> years;
+    private ArrayList<Game> gameArrayList, checkedGamesBySeason;
     private SwipeRefreshLayout mySwipeRefreshLayout;
     private ListView listView;
-    private TextView textView;
+    private ArrayList<Game> games;
+    private LinearLayoutManager linearLayoutManager;
+    private ArrayList<Integer> allGamesLeaguesId, allPasswordLeaguesId, allSchrodingerLeaguesId, homeScore, awayScore;
+    private static final String LIST_STATE = "listState";
+    private static final String recyclerviewState = "recyclerviewState";
+    private RecyclerView recyclerView;
+    private ArrayList<League> leagues;
+    private League league;
+    private Button table, allGames, password, schrodinger;
     private AppDatabase appDatabase;
+    private String maxDate = null;
+    private Parcelable state = null;
+    private int isInvinsible;
     private Bundle bundle;
     private ProgressBar progressBar;
 
-    @SuppressLint("MissingInflatedId")
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-
-        View rootView = inflater.inflate(R.layout.activity_all_games_layout, container, false);
-
-        Toolbar mToolbar;
         setHasOptionsMenu(true);
-        mToolbar = (Toolbar) rootView.findViewById(R.id.toolbar_home);
-        if (mToolbar != null) {
-            ((AppCompatActivity) requireActivity()).setSupportActionBar(mToolbar);
-        }
-        mToolbar.setTitle(null);
-        mToolbar.inflateMenu(R.menu.options_menu);
+        setRetainInstance(true);
 
-        return rootView;
-        //return inflater.inflate(R.layout.activity_all_games_layout, container, false);
+        return inflater.inflate(R.layout.fragment_league_activity, container, false);
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        appViewModel = new ViewModelProvider(requireActivity()).get(AppViewModel.class);
+        setRetainInstance(true);
+
+        appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
         appViewModel.init(getContext());
         appDatabase = AppDatabase.getAppDb(getContext());
-
         mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
-        listView  = getView().findViewById(R.id.searchList_view);
-        textView = getView().findViewById(R.id.textView);
+        listView  = getView().findViewById(R.id.list_view);
+        recyclerView = getView().findViewById(R.id.rvYears);
 
         progressBar = getView().findViewById(R.id.progressBar);
         progressBar.setVisibility(View.GONE);
         ((MainActivity) getActivity()).disableSwipe();
         //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
-        mySwipeRefreshLayout.setOnRefreshListener(() -> {
-            appViewModel.getGames();
-        });
-
         bundle = getArguments();
-        String league = bundle.getString("league");
+
+        Toolbar mToolbar;
+        setHasOptionsMenu(true);
+        mToolbar = (Toolbar) requireView().findViewById(R.id.toolbar_home);
+        if (mToolbar != null) {
+            ((AppCompatActivity) requireActivity()).setSupportActionBar(mToolbar);
+        }
+        mToolbar.setTitle(null);
+
+        mToolbar.inflateMenu(R.menu.options_menu);
+
+
+        isInvinsible =  this.getArguments().getInt("isInvinsible", 0);
+
 
         myUpdateOperation();
+        onCompletion();
+
+        // get the reference of RecyclerView
+        // set a LinearLayoutManager with default horizontal orientation and false value for reverseLayout to show the items from start to end
+        linearLayoutManager = new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL,false);
+        recyclerView.setLayoutManager(linearLayoutManager);
 
 
-        textView.setText(league);
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
+        }
+
+
+        mySwipeRefreshLayout.setOnRefreshListener(() -> {
+            leagues = (ArrayList<League>) appDatabase.getGamesLeagues();
+            for (League league: leagues) {
+                appViewModel.getStanding(league);
+            }
+            onCompletion();
+        });
+
+        //get all league id from available games
+        allGamesLeaguesId = new ArrayList<>();
+
+        appDatabase.getGames().observe(getViewLifecycleOwner(), new Observer<List<Game>>() {
+            @Override
+            public void onChanged(List<Game> games) {
+                if(games == null){
+                }else {
+                    for(Game game : games ) {
+                        if(!allGamesLeaguesId.contains(game.getLeagueId()))
+                            allGamesLeaguesId.add(game.getLeagueId());
+                    }
+                }
+            }
+        });
 
         appViewModel.isLoading().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
             @Override
@@ -129,22 +176,21 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
                 mySwipeRefreshLayout.setEnabled(firstVisibleItem == 0 && topRowVerticalPosition >= 0);
             }
         });
+
+
     }
 
-
-
+    //@Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = requireActivity().getMenuInflater();
+        MenuInflater inflater = getActivity().getMenuInflater();
         inflater.inflate(R.menu.options_menu, menu);
-        super.onCreateOptionsMenu(menu,inflater);
-        SearchManager searchManager = (SearchManager) requireActivity().getSystemService(Context.SEARCH_SERVICE);
+        SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
         searchMenuItem = menu.findItem(R.id.search);
         searchView = (SearchView) searchMenuItem.getActionView();
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(requireActivity().getComponentName()));
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
         searchView.setIconifiedByDefault(false);
         searchView.setSubmitButtonEnabled(true);
-        searchView.setQueryHint("club");
-        searchView.requestFocus();
+        searchView.setQueryHint(" leagues ");
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -162,15 +208,23 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
         searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
             @Override
             public boolean onMenuItemActionExpand(MenuItem item) {
+                if(state != null) {
+                    listView.onRestoreInstanceState(state);
+                }
                 return true;
             }
             @Override
             public boolean onMenuItemActionCollapse(MenuItem item) {
+                //myUpdateOperation();
+                if(state != null) {
+                    listView.onRestoreInstanceState(state);
+                }
                 return true;
             }
         });
         return true;
     }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -180,8 +234,9 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
                 searchView = (SearchView) MenuItemCompat.getActionView(item);
                 searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
                 searchView.setIconifiedByDefault(false);
-                searchView.setQueryHint("club");
+                searchView.setQueryHint(" leagues ");
                 searchView.requestFocus();
+
 
                 searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                     @Override
@@ -198,17 +253,15 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
                 searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                     @Override
                     public boolean onMenuItemActionExpand(MenuItem item) {
+
                         return true; // KEEP IT TO TRUE OR IT DOESN'T OPEN !!
                     }
                     @Override
                     public boolean onMenuItemActionCollapse(MenuItem item) {
+
                         return true; // OR FALSE IF YOU DIDN'T WANT IT TO CLOSE!
                     }
                 });
-
-                break;
-            default:
-                break;
         }
         super.onOptionsItemSelected(item);
         return false;
@@ -224,9 +277,57 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
         searchView=(SearchView)menu.findItem(R.id.search).getActionView();
         searchView.setIconifiedByDefault(true);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
-        searchView.setQueryHint("club");
+        searchView.setQueryHint(" leagues ");
     }
 
+    public void myUpdateOperation(){
+
+        maxDate = null;
+        ArrayList<String> maxDates = new ArrayList<>();
+
+        ArrayList<Integer> allGamesLeaguesId = (ArrayList<Integer>) bundle.getSerializable("allGamesLeaguesId");
+        ArrayList<League> allGamesLeagues = new ArrayList<>();
+
+        mySwipeRefreshLayout.setOnRefreshListener(() -> {
+            for (League league: allGamesLeagues){
+                appViewModel.getStanding(league);
+                onCompletion();
+            }
+        });
+
+
+        recyclerView.setVisibility(View.GONE);
+
+        for(int leagueId : allGamesLeaguesId ) {
+            allGamesLeagues.add(appDatabase.getLeagueById(leagueId));
+        }
+
+
+        adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 3, maxDates);
+        listView.setAdapter(adapter);
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
+        }
+        adapter.setLeagues(allGamesLeagues);
+        adapter.notifyDataSetChanged();
+        //onCompletion();
+        listView.setTextFilterEnabled(true);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                League selectedLeague = new League();
+                selectedLeague = (League) adapter.getItem(position);
+
+                TableFragment tableFragment = new TableFragment();
+                Bundle args = new Bundle();
+                args.putInt("season", selectedLeague.getSeason());
+                args.putInt("leagueId", selectedLeague.getLeagueId());
+                tableFragment.setArguments(args);
+                appViewModel.showFragment(tableFragment, view);
+            }
+        });
+
+    }
     public void onScroll(AbsListView view, int firstVisibleItem,
                          int visibleItemCount, int totalItemCount) {
         this.currentFirstVisibleItem = firstVisibleItem;
@@ -247,16 +348,6 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
         }
     }
 
-    public void myUpdateOperation(){
-        int leagueId = bundle.getInt("leagueId", 0);
-        gameArrayList = appDatabase.getGamesByLeagueId(leagueId );
-
-        adapter = new AllGamesAdapter(getActivity(),gameArrayList, R.layout.search_game_rows);
-        listView.setAdapter(adapter);
-
-        adapter.setGames(gameArrayList);
-        onCompletion();
-    }
     public void onCompletion() {
         if (mySwipeRefreshLayout.isRefreshing()) {
             mySwipeRefreshLayout.setRefreshing(false);
@@ -269,23 +360,37 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
     @Override
     public void onStop() {
         super.onStop();
-
     }
+    //@Override
+    public void onRestoreInstanceState(Bundle Bstate) {
+        state = Bstate.getParcelable(LIST_STATE);
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
+        }
+    }
+    @Override
+    public void onSaveInstanceState(Bundle Bstate) {
+        super.onSaveInstanceState(Bstate);
+        state = listView.onSaveInstanceState();
+        Bstate.putParcelable(LIST_STATE, state);
+        Bstate.putSerializable("list", (Serializable) checkedGamesBySeason);
+
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
+        }
+    }
+
     @Override
     public void onResume(){
         adapter.notifyDataSetChanged();
+        onSaveInstanceState(new Bundle());
+        onRestoreInstanceState(new Bundle());
         super.onResume();
     }
-    public void onRestart() {
 
-    }
     @Override
-    public void onRefresh() {
-
-    }
-    @Override
-    public void onBackPressed() {
-
+    public void onItemClick(View view, int position) {
+        Toast.makeText(getActivity(), "You clicked " + yearRecyclerViewAdapter.getItem(position) + " on item position " + position, Toast.LENGTH_SHORT).show();
     }
 
 }

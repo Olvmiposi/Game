@@ -26,6 +26,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
@@ -35,6 +36,7 @@ import com.example.game.model.Game;
 import com.example.game.model.SearchString;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
+import com.example.game.view.ActiveActivitiesTracker;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 import com.example.game.viewModel.SchrodingerViewModel;
@@ -222,7 +224,7 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
         searchView = (SearchView) searchMenuItem.getActionView();
         searchView.setSearchableInfo(searchManager.getSearchableInfo(requireActivity().getComponentName()));
         searchView.setIconifiedByDefault(false);
-        searchView.setQueryHint("username");
+        searchView.setQueryHint("username or club");
 
 
         int isInvinsible = bundle.getInt("isInvinsible", 0);
@@ -283,7 +285,7 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
                 searchView = (SearchView) MenuItemCompat.getActionView(item);
                 searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
                 searchView.setIconifiedByDefault(false);
-                searchView.setQueryHint("username");
+                searchView.setQueryHint("username or club");
 
                 searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                     @Override
@@ -344,7 +346,7 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
         searchView=(SearchView)menu.findItem(R.id.search).getActionView();
         searchView.setIconifiedByDefault(false);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(requireActivity().getComponentName()));
-        searchView.setQueryHint("username");
+        searchView.setQueryHint("username or club");
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -453,12 +455,14 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
     @Override
     public void onStart() {
         super.onStart();
-        //ActiveActivitiesTracker.activityStarted(this.getBaseContext());
+        appViewModel.getSchrodingerGames();
+        adapter.notifyDataSetChanged();
+        ActiveActivitiesTracker.activityStarted(this.getContext());
     }
     @Override
     public void onStop() {
         super.onStop();
-        //ActiveActivitiesTracker.activityStopped();
+        ActiveActivitiesTracker.activityStopped();
     }
     //@Override
     protected void onRestoreInstanceState(Bundle Bstate) {
@@ -474,7 +478,6 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
 
     @Override
     public void onResume(){
-        adapter.notifyDataSetChanged();
         onSaveInstanceState(new Bundle());
         super.onResume();
     }
@@ -488,6 +491,8 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
 
     @Override
     public void onBackPressed() {
+        appViewModel.getSchrodingerGames();
+        adapter.notifyDataSetChanged();
 //        //getActivity().getSupportFragmentManager().popBackStack();
 //        appViewModel.backstackFragment(getView());
 //        Toast.makeText(getContext(),"SchrodingerFragment back button pressed",Toast.LENGTH_LONG).show();

@@ -117,6 +117,12 @@ public class AppRepository {
                     editor.apply();
 
 
+                    getUsernameInfo();
+                    getTodayGame();
+                    getCheckedGames();
+                    getGames();
+                    getSchrodingerGames();
+
                 }
 
 
@@ -134,7 +140,7 @@ public class AppRepository {
 
     public void storeLeagues(ArrayList<League> leagues){
         for ( League league: leagues) {
-            newLeague = appDatabase.getLeagueById(league.getId());
+            newLeague = appDatabase.getLeagueByIdAndSeason(league.getLeagueId(),league.getSeason());
             if (newLeague != null){
                 appDatabase.updateLeague(league);
             }else{
@@ -155,10 +161,12 @@ public class AppRepository {
     }
 
     public MutableLiveData<Void> callApi(CallApiModel callApiModel, View view) {
+        isLoading.postValue(true);
         apiRequest.callApi( callApiModel ).enqueue(new Callback <Void>() {
             @Override
             public void onResponse( Call <Void> call, Response <Void> response) {
                 if (response.isSuccessful()){
+                    isLoading.postValue(false);
                     callApi.postValue(response.body());
                     Toast.makeText(view.getContext(), "API called successfully", Toast.LENGTH_SHORT).show();
                 } else {
@@ -167,6 +175,7 @@ public class AppRepository {
             }
             @Override
             public void onFailure(Call<Void>call, Throwable t) {
+                isLoading.postValue(false);
                 callApi.postValue(null);
             }
         });
@@ -200,32 +209,48 @@ public class AppRepository {
     }
 
 
+    //this route verifies past games, i.e it updates the correct score and removes the possibilities
     public MutableLiveData<ArrayList<Game>>verifyPastGame(View view) {
-        apiRequest.verifyPastGame().enqueue(new Callback <ArrayList<Game>>() {
-            @Override
-            public void onResponse( Call <ArrayList<Game>> call, Response<ArrayList<Game>> response) {
-                verifyPastGame.postValue(response.body());
-                Toast.makeText(view.getContext(), "verified past game successfully", Toast.LENGTH_SHORT).show();
+        Thread t = new Thread(){
+            public void run(){
+                try {
+                    isLoading.postValue(true);
+                    apiRequest.verifyPastGame().enqueue(new Callback <ArrayList<Game>>() {
+                        @Override
+                        public void onResponse( Call <ArrayList<Game>> call, Response<ArrayList<Game>> response) {
+                            isLoading.postValue(false);
+                            verifyPastGame.postValue(response.body());
+                            if(response.isSuccessful()){
+                                try {
+                                    appDatabase.addGameList(response.body());// add correct score to database
+                                    for ( Game game: response.body()) {
+                                        //get the possibilities of the game that needs to be verified
+                                        appDatabase.getGamePossibilities(game.getFixtureId()).observe((LifecycleOwner) view.getContext(), games1 -> {
+                                            // remove the game from the list of possibilities so that the remaining can be deleted
+                                            games1.remove(game);
+                                            appDatabase.removeAllGame((ArrayList<Game>) games1);// remove other possibilities from database
+                                        });
+                                    }
 
-                if(response.isSuccessful()){
-                    try {
-                        appDatabase.addGameList(response.body());
-                        for ( Game games: response.body()) {
-                            //appDatabase.updateGame(games);
-                            appDatabase.getGamePossibilities(games.getFixtureId()).observe((LifecycleOwner) view.getContext(), games1 -> {
-                                for ( Game game: games1) {
-                                    appDatabase.removeGame(game);
-                                }
-                            });
+                                    Toast.makeText(view.getContext(), "verified past game successfully", Toast.LENGTH_SHORT).show();
+                                }catch (NullPointerException e){}
+                            }
                         }
-                    }catch (NullPointerException e){}
+                        @Override
+                        public void onFailure(Call<ArrayList<Game>>call, Throwable t) {
+                            isLoading.postValue(false);
+                            verifyPastGame.postValue(null);
+                        }
+                    });
+
+
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
                 }
             }
-            @Override
-            public void onFailure(Call<ArrayList<Game>>call, Throwable t) {
-                verifyPastGame.postValue(null);
-            }
-        });
+        };
+        t.start();
+
         return verifyPastGame;
     }
     public MutableLiveData<ArrayList<ClubStats>>getStandings(League league) {
@@ -265,10 +290,11 @@ public class AppRepository {
     }
 
     public MutableLiveData<ArrayList<Game>> createGame(View view) {
+        isLoading.postValue(true);
         apiRequest.createGame().enqueue(new Callback <ArrayList<Game>>() {
             @Override
             public void onResponse( Call <ArrayList<Game>> call, Response <ArrayList<Game>> response) {
-
+                isLoading.postValue(false);
                 createGame.postValue(response.body());
                 Toast.makeText(view.getContext(), "Created Games successful", Toast.LENGTH_SHORT).show();
 
@@ -289,6 +315,7 @@ public class AppRepository {
             }
             @Override
             public void onFailure(Call<ArrayList <Game> >call, Throwable t) {
+                isLoading.postValue(false);
                 createGame.postValue(null);
             }
         });

@@ -32,6 +32,20 @@
                 android:layout_below="@+id/toolbar_home"
                 android:textColor="#100F0F"
                 android:textSize="25sp" />
+
+            <EditText
+                android:id="@+id/highest"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:maxLines = "2"
+                android:minLines="1"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:text="highest"
+                android:textStyle="bold"
+                android:textColor="#34833C"
+                android:textSize="25sp" />
             <LinearLayout
                 android:id="@+id/layout"
                 android:orientation="horizontal"
@@ -39,7 +53,7 @@
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/pageTitle"
                 android:layout_weight="0"
-                android:gravity="center">
+                android:layout_gravity="center">
 
                 <Space
                     android:layout_width="20dp"
@@ -112,6 +126,30 @@
 
                 <EditText
                     android:id="@+id/size"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:inputType="text"
+                    android:imeOptions="actionNext"
+                    android:maxLines="1"
+                    android:hint="0"
+                    android:textSize="10dp" />
+                <Space
+                    android:layout_width="20dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"></Space>
+
+                <ImageButton
+                    android:id="@+id/cats"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_weight="0"
+                    android:layout_gravity="center"
+                    android:background="@drawable/cat" />
+
+                <EditText
+                    android:id="@+id/no_of_cats"
                     android:layout_width="wrap_content"
                     android:layout_height="40dp"
                     android:layout_weight="1"

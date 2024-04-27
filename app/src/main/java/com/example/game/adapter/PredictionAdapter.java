@@ -184,7 +184,7 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
                 @Override
                 public void onClick(View v) {
                     Game selectedgame = new Game();
-                    selectedgame = ((Game) getItem(position));
+                    selectedgame = ((Game) filteredList.get(position));
 
                     if(selectedgame.schrodinger == 1){
                         AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
@@ -206,8 +206,8 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
                     }else {
                         AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
                         builder.setMessage("Is this result familiar ? \n" +
-                                selectedgame.getHome() + " " + selectedgame.getScore1() + " VS " +
-                                selectedgame.getScore2() + " " + selectedgame.getAway());
+                                selectedgame.getHome() + " " + selectedgame.getScore1() + " \n " +
+                                selectedgame.getAway() + " " + selectedgame.getScore2() + " \n " );
                         builder.setTitle("Alert !");
                         builder.setCancelable(false);
                         Game finalSelectedgame = selectedgame;

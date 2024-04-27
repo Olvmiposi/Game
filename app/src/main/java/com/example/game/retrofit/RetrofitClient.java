@@ -20,8 +20,8 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 public final class RetrofitClient {
     private static RetrofitClient instance;
     private SharedPreferenceUtils sharedPreferenceUtils ;
-    //private String baseUrl  = "https://religator.loca.lt";
-    private String baseUrl  = "http://192.168.2.32:3001";
+    private String baseUrl  = "https://religator.loca.lt";
+    //private String baseUrl  = "http://192.168.2.32:3001";
     private String loginUrl  = baseUrl + "/users/authenticate";
     private String token;
     private ApiRequest apiRequest;
@@ -31,6 +31,10 @@ public final class RetrofitClient {
         }
         return instance;
     }
+
+//    .connectTimeout(5, TimeUnit.MINUTES)
+//                .writeTimeout(5, TimeUnit.MINUTES)
+//                .readTimeout(5, TimeUnit.MINUTES)
     public RetrofitClient(Context context) {
         HttpLoggingInterceptor httpLoggingInterceptor = new HttpLoggingInterceptor();
         httpLoggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
@@ -47,6 +51,7 @@ public final class RetrofitClient {
             public Response intercept(Chain chain) throws IOException {
                 Request newRequest  = chain.request()
                         .newBuilder()
+                        .header("Content-Type", "application/json")
                         .addHeader("Authorization", "Bearer " + token)
                         .build();
 

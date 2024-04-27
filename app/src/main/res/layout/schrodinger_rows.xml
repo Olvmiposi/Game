@@ -61,15 +61,15 @@
                     <TextView
                         android:id="@+id/username"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_weight="1"
                         android:hint="username"
-                        android:gravity="center"
-                        android:textSize="15sp" />
+                        android:gravity="center"/>
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="45dp"
                     android:layout_gravity="left"
                     android:visibility="visible"
                     android:orientation="horizontal">
@@ -117,7 +117,7 @@
                                 android:id="@+id/position1"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                android:layout_weight="1"
+                                android:layout_weight="0"
                                 android:gravity="center"
                                 android:hint="1" />
                             <ImageView
@@ -169,7 +169,7 @@
                                 android:id="@+id/position2"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                android:layout_weight="1"
+                                android:layout_weight="0"
                                 android:gravity="center"
                                 android:hint="1" />
                             <ImageView
@@ -211,7 +211,7 @@
                 </LinearLayout>
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="25dp"
                     android:layout_gravity="left"
                     android:orientation="horizontal">
 
@@ -223,6 +223,25 @@
                         android:layout_weight="1"
                         android:gravity="center"/>
 
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center">
+
+                        <Button
+                            android:id="@+id/schrodingerBtn"
+                            android:layout_width="wrap_content"
+                            android:layout_height="35dp"
+                            android:text="Possibility"
+                            android:textColor="@color/black"
+                            android:textSize="11sp"
+                            android:backgroundTint="#DA5353"
+                            android:gravity="center"
+                            app:cornerRadius="10dp"/>
+
+                    </LinearLayout>
+
                     <TextView
                         android:id="@+id/date"
                         android:hint="date"
@@ -230,24 +249,10 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:gravity="center"/>
-                </LinearLayout>
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="right">
 
-                    <Button
-                        android:id="@+id/schrodingerBtn"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Possibility"
-                        android:textColor="@color/black"
-                        android:textSize="11sp"
-                        android:backgroundTint="#DA5353"
-                        android:gravity="center"
-                        app:cornerRadius="15dp"/>
 
                 </LinearLayout>
+
             </LinearLayout>
         </TableRow>
     </androidx.cardview.widget.CardView>
