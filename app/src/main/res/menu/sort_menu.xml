@@ -14,11 +14,17 @@
         android:id="@+id/max"
         android:title="Show Max" />
     <item
+        android:id="@+id/maxbyseason"
+        android:title="Show Max By Season" />
+    <item
         android:id="@+id/min"
         android:title="Show Min" />
     <item
         android:id="@+id/mostOccur"
         android:title="Show Most Occurred" />
+    <item
+        android:id="@+id/mostOccurHA"
+        android:title="Show Most Occurred H A" />
     <item
         android:id="@+id/lastFive"
         android:title="Show Last 5 By Club" />

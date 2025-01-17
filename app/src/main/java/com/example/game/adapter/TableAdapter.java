@@ -27,16 +27,19 @@ public class TableAdapter extends BaseAdapter {
     private TextView positio, name, points, allPlayed, win, draw, lose, goalsFor, goalsAgainst, goalsDiff;
     private ClubStats currentTable, newTable;
     private AppDatabase appDatabase;
+    private String baseUrl;
     public ArrayList<ClubStats> getClubStats() {
         return clubStats;
     }
     public void setClubStats(ArrayList<ClubStats> clubStats) {
         this.clubStats = clubStats;
     }
-    public TableAdapter(Activity activity, ArrayList<ClubStats> clubStats, int layout ) {
+    public TableAdapter(Activity activity, ArrayList<ClubStats> clubStats, int layout, String baseUrl ) {
         this.activity = activity;
         this.clubStats = clubStats;
         this.layout = layout;
+        this.baseUrl = baseUrl;
+
     }
     @Override
     public int getCount() {
@@ -91,7 +94,8 @@ public class TableAdapter extends BaseAdapter {
             goalsDiff.setText(String.valueOf( currentTable.getGoalsDiff()));
 
             appViewModel = new ViewModelProvider((ViewModelStoreOwner) context).get(AppViewModel.class);
-            appViewModel.init(context);
+            appViewModel.setBaseUrl(baseUrl);
+            appViewModel.init(context, baseUrl);
         }
 
         return convertView;

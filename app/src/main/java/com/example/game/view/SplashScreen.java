@@ -16,7 +16,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.game.R;
@@ -36,15 +35,17 @@ public class SplashScreen extends AppCompatActivity {
     private RadioGroup radioGroup;
     private ProgressBar progressBar;
     private ArrayList<League> leagues;
-    SharedPreferences spRadio; // class variable
+
+    private String baseUrl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash_screen);
-
+        baseUrl = "http://10.0.0.85:3002";
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getBaseContext());
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getBaseContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getBaseContext());
         askNotificationPermission();
         mainMenuBtn = findViewById(R.id.mainMenuBtn);
@@ -57,14 +58,14 @@ public class SplashScreen extends AppCompatActivity {
 
         }
         else {
-            Intent mainActivityIntent = new Intent(getBaseContext(), MainActivity.class);
+            Intent mainActivityIntent = new Intent(getBaseContext(), StartingActivity.class);
             mainActivityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(mainActivityIntent);
         }
         mainMenuBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent mainMenuActivityIntent = new Intent(getBaseContext(), MainActivity.class);
+                Intent mainMenuActivityIntent = new Intent(getBaseContext(), StartingActivity.class);
                 mainMenuActivityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(mainMenuActivityIntent);
             }
@@ -89,6 +90,16 @@ public class SplashScreen extends AppCompatActivity {
         }
     }
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        //Clear the Activity's bundle of the subsidiary fragments' bundles.
+        outState.clear();
+    }
+    @Override
+    public void onRestart() {
+        super.onRestart();
+    }
+    @Override
     public void onStart() {
         super.onStart();
         ActiveActivitiesTracker.activityStarted(this.getBaseContext());
@@ -98,8 +109,13 @@ public class SplashScreen extends AppCompatActivity {
         super.onStop();
         ActiveActivitiesTracker.activityStopped();
     }
+    @Override
     public void onPause() {
         super.onPause();
-        //ActiveActivitiesTracker.activityStopped();
     }
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+    
 }

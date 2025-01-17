@@ -87,6 +87,12 @@ public class ClubStats {
     @ColumnInfo
     private String dateTime;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @SerializedName("season")
+    @Expose
+    @ColumnInfo
+    private int season;
+
 
     public ClubStats(){
 
@@ -201,5 +207,13 @@ public class ClubStats {
 
     public void setDateTime(String dateTime) {
         this.dateTime = dateTime;
+    }
+
+    public int getSeason() {
+        return season;
+    }
+
+    public void setSeason(int season) {
+        this.season = season;
     }
 }

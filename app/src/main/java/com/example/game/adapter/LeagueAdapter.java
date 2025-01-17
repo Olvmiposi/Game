@@ -13,8 +13,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.cardview.widget.CardView;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.example.game.R;
 import com.example.game.model.League;
+import com.example.game.view.MainActivity;
+import com.example.game.viewModel.AppViewModel;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -26,10 +31,13 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
     private LayoutInflater inflater;
     private ArrayList<League> leagues;
     private LeagueFilter leagueFilter;
+    private AppViewModel appViewModel;
+
     private ImageView newImageView;
     private ArrayList<String> maxDate;
-    private LinearLayout li;
+    private CardView li;
     private ArrayList<League> filteredList;
+
     private int layout, colorChange;
     private TextView leagueId, name, season, start, end;
     private League currentLeague, newLeague;
@@ -50,6 +58,7 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
         this.maxDate = maxDate;
         getFilter();
     }
+
 
     @Override
     public int getCount() {
@@ -77,7 +86,7 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
         season = convertView.findViewById(R.id.season);
         start =  convertView.findViewById(R.id.start);
         end = convertView.findViewById(R.id.end);
-        li = (LinearLayout)convertView.findViewById(R.id.layout);
+        li = (CardView)convertView.findViewById(R.id.layout);
 
         currentLeague = (League) getItem(position);
         newLeague = currentLeague;
@@ -92,13 +101,13 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
         }else if(layout == R.layout.league_activity_rows){
 
             if (colorChange == 1){// default is 0, red
-                li.setBackgroundColor(Color.parseColor("#34833C"));// green
+                li.setCardBackgroundColor(Color.parseColor("#34833C"));// green
             }
             if (colorChange == 2){
-                li.setBackgroundColor(Color.parseColor("#7C42CD"));// purple
+                li.setCardBackgroundColor(Color.parseColor("#7C42CD"));// purple
             }
             if (colorChange == 3){
-                li.setBackgroundColor(Color.parseColor("#CF7843"));// orange
+                li.setCardBackgroundColor(Color.parseColor("#CF7843"));// orange
             }
 
             newImageView = convertView.findViewById(R.id.newGame);
@@ -119,20 +128,28 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
 
                 }
 
-            }catch (IndexOutOfBoundsException e){
+            }catch (NullPointerException | IndexOutOfBoundsException e){
 
             }
 
-            name.setText(currentLeague.getName());
-            season.setText(String.valueOf(currentLeague.getSeason()));
-            start.setText(currentLeague.getStart());
-            end.setText(currentLeague.getEnd());
+            try {
+
+                name.setText(currentLeague.getName());
+                season.setText(String.valueOf(currentLeague.getSeason()));
+                start.setText(currentLeague.getStart());
+                end.setText(currentLeague.getEnd());
+
+            }catch (NullPointerException e){
+
+            }
+
         }else if(layout == R.layout.callapi_activity_rows){
-            //leagueId.setText(String.valueOf(currentLeague.getLeagueId()));
+            leagueId.setText(String.valueOf(currentLeague.getLeagueId()));
             name.setText(currentLeague.getName());
             season.setText(String.valueOf(currentLeague.getSeason()));
             start.setText(currentLeague.getStart());
             end.setText(currentLeague.getEnd());
+
         }
         return convertView;
     }
@@ -152,8 +169,8 @@ public class LeagueAdapter extends BaseAdapter implements Filterable {
             if (constraint!=null && constraint.length()>0) {
                 ArrayList<League> tempList = new ArrayList<League>();
                 for (League league : leagues) {
-                    if ( league.getName().toLowerCase().contains(constraint.toString().toLowerCase())
-                        ||  String.valueOf(league.getSeason()).toLowerCase().contains(constraint.toString().toLowerCase())
+                    if ( league.getName().replace(" - ", " ").toLowerCase().contains(constraint.toString().toLowerCase())
+                        || league.getName().toLowerCase().contains(constraint.toString().toLowerCase())
                         ||  String.valueOf(league.getLeagueId()).toLowerCase().contains(constraint.toString().toLowerCase())
                         ||  String.valueOf(league.getSeason()).toLowerCase().contains(constraint.toString().toLowerCase())
                         || league.getStart().toLowerCase().contains(constraint.toString().toLowerCase())

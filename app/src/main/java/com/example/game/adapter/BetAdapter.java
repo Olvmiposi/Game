@@ -3,11 +3,9 @@ package com.example.game.adapter;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -21,10 +19,8 @@ import com.example.game.model.BetResponse;
 import com.example.game.model.Game;
 import com.example.game.repository.AppDatabase;
 import com.example.game.view.MainActivity;
-import com.example.game.view.fragments.PredictionsFragment;
 import com.example.game.viewModel.AppViewModel;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 
 public class BetAdapter extends BaseAdapter {
@@ -41,7 +37,7 @@ public class BetAdapter extends BaseAdapter {
     private ListAdapter listAdapter;
     private TextView  group, no_of_bets;
     private ListView teamListView;
-
+    private String baseUrl;
     private Game  newGame;
     private ArrayList<Game> currentGame;
     private ImageView profilePhoto;
@@ -52,10 +48,11 @@ public class BetAdapter extends BaseAdapter {
     public void setGames(ArrayList<BetResponse> games) {
         this.games = games;
     }
-    public BetAdapter(Activity activity, ArrayList<BetResponse> games, int layout ) {
+    public BetAdapter(Activity activity, ArrayList<BetResponse> games, int layout , String baseUrl) {
         this.activity = activity;
         this.games = games;
         this.layout = layout;
+        this.baseUrl = baseUrl;
     }
     @Override
     public int getCount() {
@@ -91,7 +88,8 @@ public class BetAdapter extends BaseAdapter {
         {
 
             appViewModel = new ViewModelProvider((MainActivity) context).get(AppViewModel.class);
-            appViewModel.init(context);
+            appViewModel.setBaseUrl(baseUrl);
+            appViewModel.init(context, baseUrl);
 
             homeAdapter = new HomeAdapter( activity, (ArrayList<Game>) currentGame,  R.layout.team);
             teamListView.setAdapter(homeAdapter);
@@ -118,7 +116,7 @@ public class BetAdapter extends BaseAdapter {
                     builder.setTitle("Group " + (Integer.valueOf(position) + 1));
                     builder.setView(newconvertView);
                     ListView lv = (ListView) newconvertView.findViewById(R.id.dialogListView);
-                    listAdapter = new ListAdapter(activity, (ArrayList<Game>) selectedgame,  R.layout.bets_rows);
+                    listAdapter = new ListAdapter(activity, (ArrayList<Game>) selectedgame,  R.layout.bets_rows, baseUrl );
                     lv.setAdapter(listAdapter);
                     listAdapter.setGames((ArrayList<Game>) selectedgame);
                     listAdapter.notifyDataSetChanged();

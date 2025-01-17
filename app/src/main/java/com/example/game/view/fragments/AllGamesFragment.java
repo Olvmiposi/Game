@@ -3,7 +3,6 @@ package com.example.game.view.fragments;
 import android.annotation.SuppressLint;
 import android.app.SearchManager;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.view.LayoutInflater;
@@ -13,12 +12,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,24 +24,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.game.R;
 import com.example.game.adapter.AllGamesAdapter;
-import com.example.game.adapter.SearchAdapter;
 import com.example.game.model.Game;
-import com.example.game.model.SearchString;
+import com.example.game.model.League;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
-import java.io.Serializable;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsListView.OnScrollListener {
     private SearchView searchView;
@@ -60,6 +53,9 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
     private AppDatabase appDatabase;
     private Bundle bundle;
     private ProgressBar progressBar;
+    private Button showMore;
+    private String league, latestDate, baseUrl;
+    private int leagueId, season;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -70,6 +66,7 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
 
         Toolbar mToolbar;
         setHasOptionsMenu(true);
+        setRetainInstance(true);
         mToolbar = (Toolbar) rootView.findViewById(R.id.toolbar_home);
         if (mToolbar != null) {
             ((AppCompatActivity) requireActivity()).setSupportActionBar(mToolbar);
@@ -84,41 +81,46 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        setRetainInstance(true);
+        bundle = getArguments();
         appViewModel = new ViewModelProvider(requireActivity()).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
-
         mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
         listView  = getView().findViewById(R.id.searchList_view);
         textView = getView().findViewById(R.id.textView);
-
         progressBar = getView().findViewById(R.id.progressBar);
         progressBar.setVisibility(View.GONE);
-        ((MainActivity) getActivity()).disableSwipe();
+        showMore = requireView().findViewById(R.id.showMore);
+        ((MainActivity) requireActivity()).disableSwipe();
         //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
+        league = bundle.getString("league");
+        leagueId = bundle.getInt("leagueId", 0);
+        latestDate = bundle.getString("latestDate");
+        season = bundle.getInt("season", 0);
         mySwipeRefreshLayout.setOnRefreshListener(() -> {
-            appViewModel.getGames();
+            League league1 = new League();
+            league1.setLeagueId(leagueId);
+            league1.setSeason(season);
+            appViewModel.getGames(league1);
         });
 
-        bundle = getArguments();
-        String league = bundle.getString("league");
-
-        myUpdateOperation();
 
 
-        textView.setText(league);
-
-        appViewModel.isLoading().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
+        getTodayGames();
+        showMore.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onChanged(Boolean aBoolean) {
-                if(aBoolean){
-                    progressBar.setVisibility(View.VISIBLE);
-                }else{
-                    progressBar.setVisibility(View.GONE);
-                }
+            public void onClick(View arg0) {
+                // Starting a new async task
+                myUpdateOperation();
+                onCompletion();
+
             }
         });
 
+        textView.setText(league);
         listView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -130,7 +132,6 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
             }
         });
     }
-
 
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -154,11 +155,14 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                }catch (NullPointerException e){
+
+                }
                 return false;
             }
         });
-
         searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
             @Override
             public boolean onMenuItemActionExpand(MenuItem item) {
@@ -190,7 +194,11 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
                     }
                     @Override
                     public boolean onQueryTextChange(String newText) {
-                        adapter.getFilter().filter(newText);
+                        try {
+                            adapter.getFilter().filter(newText);
+                        }catch (NullPointerException e){
+
+                        }
                         return false;
                     }
                 });
@@ -247,13 +255,24 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
         }
     }
 
+    public void getTodayGames(){
+        
+        gameArrayList = appDatabase.getGamesByLeagueIdAndDate(leagueId,latestDate);
+
+        adapter = new AllGamesAdapter(getActivity(),gameArrayList, R.layout.search_game_rows, baseUrl);
+        listView.setAdapter(adapter);
+        adapter.setGames(gameArrayList);
+        onCompletion();
+    }
+
+
     public void myUpdateOperation(){
         int leagueId = bundle.getInt("leagueId", 0);
-        gameArrayList = appDatabase.getGamesByLeagueId(leagueId );
+        int season = bundle.getInt("season", 0);
+        gameArrayList = appDatabase.getGamesByLeagueIdAndSeason(leagueId, season );
 
-        adapter = new AllGamesAdapter(getActivity(),gameArrayList, R.layout.search_game_rows);
+        adapter = new AllGamesAdapter(getActivity(),gameArrayList, R.layout.search_game_rows, baseUrl);
         listView.setAdapter(adapter);
-
         adapter.setGames(gameArrayList);
         onCompletion();
     }
@@ -269,23 +288,17 @@ public class AllGamesFragment extends Fragment implements IOnBackPressed, AbsLis
     @Override
     public void onStop() {
         super.onStop();
-
     }
     @Override
     public void onResume(){
         adapter.notifyDataSetChanged();
         super.onResume();
     }
-    public void onRestart() {
-
-    }
     @Override
     public void onRefresh() {
-
     }
     @Override
     public void onBackPressed() {
-
     }
 
 }

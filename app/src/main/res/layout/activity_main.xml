@@ -98,8 +98,6 @@
                                     android:layout_gravity="center"
                                     android:background="@drawable/green_gaming"
                                     android:onClick="passwords"
-                                    android:text="Passwords"
-                                    android:textSize="11sp"
                                     app:cornerRadius="15dp" />
 
                                 <TextView
@@ -111,6 +109,43 @@
                                     android:onClick="passwords"
                                     android:gravity="center"
                                     android:text=" Passwords "
+                                    android:textSize="11sp"
+                                    app:cornerRadius="15dp" />
+
+                            </LinearLayout>
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"></Space>
+
+                            <LinearLayout
+                                android:id="@+id/searchLayout"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:onClick="search"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <Button
+                                    android:id="@+id/searchBtn"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:backgroundTint="#34833C"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/search_24"
+                                    android:onClick="search"
+                                    app:cornerRadius="15dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:backgroundTint="#F9AA33"
+                                    android:layout_gravity="center"
+                                    android:onClick="search"
+                                    android:gravity="center"
+                                    android:text=" Search "
                                     android:textSize="11sp"
                                     app:cornerRadius="15dp" />
 
@@ -307,8 +342,6 @@
                                 android:background="@drawable/cat"
                                 android:onClick="schrodinger"
                                 android:gravity="center"
-                                android:text=" Bet "
-                                android:textSize="11sp"
                                 app:cornerRadius="15dp" />
 
 

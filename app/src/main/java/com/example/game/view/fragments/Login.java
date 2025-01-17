@@ -20,6 +20,8 @@ public class Login extends Fragment {
     private View view;
     private AppViewModel appViewModel;
     private LoginActivityBinding binding;
+    private  Bundle bundle;
+    private String baseUrl;
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         view =  inflater.inflate(R.layout.login_activity, parent, false);
@@ -27,8 +29,11 @@ public class Login extends Fragment {
     }
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
+        bundle = getArguments();
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        baseUrl = "http://10.0.0.85:3002";
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
         binding = DataBindingUtil.setContentView(requireActivity(), R.layout.login_activity);
         binding.setLifecycleOwner(getViewLifecycleOwner());
         binding.setAppViewModel(appViewModel);

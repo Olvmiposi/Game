@@ -41,8 +41,8 @@ public class SchrodingerViewModel extends ViewModel {
 
     }
 
-    public void init( Context context) {
-        appRepository.init(context);
+    public void init( Context context, String baseUrl) {
+        appRepository.init(context, baseUrl);
     }
 
     public void searchSchrodingerOnClick( String s ) {
@@ -50,6 +50,7 @@ public class SchrodingerViewModel extends ViewModel {
     }
     public void getSchrodingerGames(){
         appRepository.getSchrodingerGames();
+        appRepository.getSchrodingers();
     }
 
     public MutableLiveData<ArrayList<Game>> getSchrodingerGamesResponse(){

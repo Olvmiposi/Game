@@ -34,16 +34,17 @@ public class SearchAdapter extends BaseAdapter {
 
     private TextView username;
     private LayoutInflater inflater;
-    private String usernameText;
+    private String usernameText, baseUrl;
     private SearchString searchString;
     private SearchView searchView;
     private MenuItem searchMenuItem;
     private AppViewModel appViewModel;
     private Menu mOptionsMenu;
-    public SearchAdapter(Context mContext, List<SearchString> list, Menu mOptionsMenu) {
+    public SearchAdapter(Context mContext, List<SearchString> list, Menu mOptionsMenu, String baseUrl) {
         // TODO Auto-generated constructor stub
         this.mContext = mContext;
         this.list = list;
+        this.baseUrl = baseUrl;
         this.mOptionsMenu = mOptionsMenu;
     }
 
@@ -89,7 +90,7 @@ public class SearchAdapter extends BaseAdapter {
         username.setText(String.valueOf(usernameText));
 
         appViewModel = new ViewModelProvider((MainActivity) context).get(AppViewModel.class);
-        appViewModel.init(context);
+        appViewModel.setBaseUrl(baseUrl);
 
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override

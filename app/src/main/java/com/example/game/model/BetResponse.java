@@ -19,8 +19,21 @@ public class BetResponse {
 
     private ArrayList<Game> games;
 
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @SerializedName("totalScores")
+    @Expose
+    private int totalScores;
+
     private BetResponse(){
 
+    }
+
+    public int getTotalScores() {
+        return totalScores;
+    }
+
+    public void setTotalScores(int totalScores) {
+        this.totalScores = totalScores;
     }
 
     public ArrayList<Game> getGames() {

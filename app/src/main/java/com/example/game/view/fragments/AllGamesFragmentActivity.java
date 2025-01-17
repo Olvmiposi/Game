@@ -4,18 +4,17 @@ import static android.widget.AbsListView.OnScrollListener.SCROLL_STATE_IDLE;
 
 import android.app.SearchManager;
 import android.content.Context;
-import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.Button;
+import android.widget.ListPopupWindow;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
@@ -23,6 +22,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.MenuItemCompat;
@@ -42,13 +42,17 @@ import com.example.game.repository.AppDatabase;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
-import java.io.Serializable;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerViewAdapter.ItemClickListener{
     private SearchView searchView;
@@ -62,18 +66,16 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
     private ListView listView;
     private ArrayList<Game> games;
     private LinearLayoutManager linearLayoutManager;
-    private ArrayList<Integer> allGamesLeaguesId, homeScore, awayScore;
+    private ArrayList<Integer> allGamesLeaguesId, homeScore, awayScore, years;
+    private ArrayList<League> allGamesLeagues;
     private static final String LIST_STATE = "listState";
     private static final String recyclerviewState = "recyclerviewState";
     private RecyclerView recyclerView;
-
-    private Button table, allGames, password, schrodinger;
     private AppDatabase appDatabase;
-    private String maxDate = null;
+    private String maxDate,latestDate, baseUrl;
     private Parcelable state = null;
     private int isInvinsible;
     private Bundle bundle;
-    private String args;
     private ProgressBar progressBar;
 
     @Override
@@ -84,23 +86,25 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
         return inflater.inflate(R.layout.fragment_league_activity, container, false);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         setRetainInstance(true);
-
-        appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
-        appDatabase = AppDatabase.getAppDb(getContext());
-        mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
-        listView  = getView().findViewById(R.id.list_view);
-        recyclerView = getView().findViewById(R.id.rvYears);
-
-        progressBar = getView().findViewById(R.id.progressBar);
-        progressBar.setVisibility(View.GONE);
-        ((MainActivity) getActivity()).disableSwipe();
-        //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
         bundle = getArguments();
+        appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
+        appDatabase = AppDatabase.getAppDb(getContext());
+        mySwipeRefreshLayout = requireView().findViewById(R.id.swiperefresh);
+        listView  = requireView().findViewById(R.id.list_view);
+        recyclerView = requireView().findViewById(R.id.rvYears);
+
+        progressBar = requireView().findViewById(R.id.progressBar);
+        progressBar.setVisibility(View.GONE);
+        ((MainActivity) requireActivity()).disableSwipe();
+        //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
 
         Toolbar mToolbar;
         setHasOptionsMenu(true);
@@ -112,22 +116,42 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
 
         mToolbar.inflateMenu(R.menu.options_menu);
 
-        args = bundle.getString("allGamesLeaguesIdBundle");
-        isInvinsible =  this.getArguments().getInt("isInvinsible", 0);
+        isInvinsible =  bundle.getInt("isInvinsible", 0);
+        //latestDate = bundle.getString("latestDate");
+
+        allGamesLeaguesId = new ArrayList<>();
+
+        allGamesLeagues =new ArrayList<>();
+
+
+
+        years = new ArrayList<>();
+        years.add(2025);
+        years.add(2024);
+        years.add(2023);
+        years.add(2022);
+        years.add(2021);
+        years.add(2020);
+        years.add(2019);
+        years.add(2018);
 
         myUpdateOperation();
         onCompletion();
+
 
         // get the reference of RecyclerView
         // set a LinearLayoutManager with default horizontal orientation and false value for reverseLayout to show the items from start to end
         linearLayoutManager = new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL,false);
         recyclerView.setLayoutManager(linearLayoutManager);
 
-        if (args != null){
-            mySwipeRefreshLayout.setOnRefreshListener(() -> {
-                appViewModel.getGames();
-            });
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
         }
+
+
+
+
+
 
         appViewModel.isLoading().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
             @Override
@@ -150,45 +174,11 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
                 mySwipeRefreshLayout.setEnabled(firstVisibleItem == 0 && topRowVerticalPosition >= 0);
             }
         });
-
-
     }
 
-    //@Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getActivity().getMenuInflater();
-        inflater.inflate(R.menu.options_menu, menu);
-        SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
-        searchMenuItem = menu.findItem(R.id.search);
-        searchView = (SearchView) searchMenuItem.getActionView();
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
-        searchView.setIconifiedByDefault(false);
-        searchView.setSubmitButtonEnabled(true);
-        searchView.setQueryHint(" leagues ");
 
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
-                return false;
-            }
-        });
-
-        searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
-            @Override
-            public boolean onMenuItemActionExpand(MenuItem item) {
-                return true;
-            }
-            @Override
-            public boolean onMenuItemActionCollapse(MenuItem item) {
-                return true;
-            }
-        });
-        return true;
+        return false;
     }
 
     @Override
@@ -209,7 +199,11 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
                     }
                     @Override
                     public boolean onQueryTextChange(String newText) {
-                        adapter.getFilter().filter(newText);
+                        try {
+                            adapter.getFilter().filter(newText);
+                        }catch (NullPointerException e){
+
+                        }
                         return false;
                     }
                 });
@@ -217,10 +211,16 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
                 searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                     @Override
                     public boolean onMenuItemActionExpand(MenuItem item) {
+                        if(state != null) {
+                            listView.onRestoreInstanceState(state);
+                        }
                         return true; // KEEP IT TO TRUE OR IT DOESN'T OPEN !!
                     }
                     @Override
                     public boolean onMenuItemActionCollapse(MenuItem item) {
+                        if(state != null) {
+                            listView.onRestoreInstanceState(state);
+                        }
                         return true; // OR FALSE IF YOU DIDN'T WANT IT TO CLOSE!
                     }
                 });
@@ -242,42 +242,190 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
         searchView.setQueryHint(" leagues ");
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     public void myUpdateOperation(){
         maxDate = null;
-
         ArrayList<String> maxDates = new ArrayList<>();
+        ArrayList<Integer> leagueIds = new ArrayList<>();
+        yearRecyclerViewAdapter = new YearRecyclerViewAdapter(getActivity(), years);
+        //while true, look for the latest games league from the years
+        // if latest game is found, break
+        //////////////////////////////////////////////////////////
+        try{
+            ArrayList<League> currentYearLeague = new ArrayList<>();
+            int count = -1;
+            while(true) {
+                count++;
+                int season = yearRecyclerViewAdapter.getItem(count);
+                leagueIds = appDatabase.getDistinctLeagueBySeason(season);
+                for (int leagueId:leagueIds) {
+                    allGamesLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
+                }
+                if(!leagueIds.isEmpty()) {
+                    yearRecyclerViewAdapter.setSelected_position(count);
 
-        ArrayList<Integer> allGamesLeaguesId = (ArrayList<Integer>) bundle.getSerializable("allGamesLeaguesId");
-        ArrayList<League> allGamesLeagues = new ArrayList<>();
+                    mySwipeRefreshLayout.setOnRefreshListener(() -> {
+                        for (League league: allGamesLeagues) {
+                            appViewModel.getGames(league);
+                        }
+                        //appViewModel.getGames();
+                        onCompletion();
+                    });
 
-        recyclerView.setVisibility(View.GONE);
+                    for(League league: allGamesLeagues) {
+                        try{
+                            maxDates.add(league.getEnd());
+                        }catch(NullPointerException e ){
 
-        for(int leagueId : allGamesLeaguesId ) {
-            allGamesLeagues.add(appDatabase.getLeagueById(leagueId));
-        }
+                        }
+                    }
 
-        adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 0,maxDates );
-        listView.setAdapter(adapter);
+                    adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 0, maxDates);
+                    listView.setAdapter(adapter);
+                    if(state != null) {
+                        listView.onRestoreInstanceState(state);
+                    }
+                    adapter.setLeagues(currentYearLeague);
+                    adapter.notifyDataSetChanged();
+                    listView.setTextFilterEnabled(true);
+                    listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                        @Override
+                        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                            League selectedLeague = new League();
+                            selectedLeague = (League) adapter.getItem(position);
+                            gameArrayList = (ArrayList<Game>) appDatabase.getGamesByLeagueIdAndSeason(selectedLeague.getLeagueId(), selectedLeague.getSeason());
+                            try{
+                                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
 
-        adapter.setLeagues(allGamesLeagues);
-        adapter.notifyDataSetChanged();
-        //onCompletion();
-        listView.setTextFilterEnabled(true);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+                                ArrayList<Game> newgames = new ArrayList<>();
+                                for (Game game: gameArrayList) {
+                                    Date currentDate = new Date();
+                                    SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
+                                    String currentDateTime = dateFormat.format(currentDate);
+                                    Date date1 = (Date) dateFormat.parse(currentDateTime);
+                                    Date date2 = (Date) dateFormat.parse(String.valueOf(game.getDate()));
+                                    if(date1.after(date2)){
+                                        System.out.println("Date1 is after Date2");
+                                    }else if (date1.before(date2)){
+                                        newgames.add(game);
+                                    }
+                                }
+                                latestDate = Objects.requireNonNull(newgames.stream()
+                                        .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
+                                        .min(Comparator.comparing(LocalDate::toEpochDay))
+                                        .orElse(null)).format(dtf);
+                            }catch(NullPointerException | ParseException e ){
+                            }
+                            AllGamesFragment allGamesFragment = new AllGamesFragment();
+                            Bundle args = new Bundle();
+                            args.putString("baseUrl", baseUrl);
+                            args.putString("league", selectedLeague.getName());
+                            args.putInt("leagueId", selectedLeague.getLeagueId());
+                            args.putInt("season", selectedLeague.getSeason());
+                            args.putString("latestDate", latestDate);
+                            allGamesFragment.setArguments(args);
+                            appViewModel.replaceFragment(allGamesFragment, view);
+                        }
+                    });
+
+
+                    break;
+
+                }
+
+            }
+
+        }catch(NullPointerException | IndexOutOfBoundsException e){}
+
+
+        recyclerView.setAdapter(yearRecyclerViewAdapter); // set the Adapter to RecyclerView
+
+        yearRecyclerViewAdapter.setClickListener(new YearRecyclerViewAdapter.ItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                League selectedLeague = new League();
-                selectedLeague = (League) adapter.getItem(position);
+            public void onItemClick(View view, int position) {
 
-                AllGamesFragment allGamesFragment = new AllGamesFragment();
-                Bundle args = new Bundle();
-                args.putString("league", selectedLeague.getName());
-                args.putInt("leagueId", selectedLeague.getLeagueId());
+                ArrayList<Integer> leagueIds = new ArrayList<>();
 
-                args.putSerializable("allGamesLeaguesId",(Serializable)allGamesLeaguesId);
-                args.putString("allGamesLeaguesIdBundle",args.toString());
-                allGamesFragment.setArguments(args);
-                appViewModel.showFragment(allGamesFragment, view);
+                maxDates.clear();
+                allGamesLeagues.clear();
+
+                int season = yearRecyclerViewAdapter.getItem(position);
+
+                leagueIds = appDatabase.getDistinctLeagueBySeason(season);
+                for (int leagueId:leagueIds) {
+                    allGamesLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
+                }
+
+                mySwipeRefreshLayout.setOnRefreshListener(() -> {
+                    for (League league: allGamesLeagues) {
+                        appViewModel.getGames(league);
+                    }
+                    //appViewModel.getGames();
+                    onCompletion();
+                });
+
+                adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 0,maxDates );
+                listView.setAdapter(adapter);
+                if(state != null) {
+                    listView.onRestoreInstanceState(state);
+                }
+                adapter.setLeagues(allGamesLeagues);
+                adapter.notifyDataSetChanged();
+                onCompletion();
+                listView.setTextFilterEnabled(true);
+                listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                        League selectedLeague = new League();
+                        selectedLeague = (League) adapter.getItem(position);
+
+                        gameArrayList = (ArrayList<Game>) appDatabase.getGamesByLeagueIdAndSeason(selectedLeague.getLeagueId(), selectedLeague.getSeason());
+                        try{
+                            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+
+
+                            ArrayList<Game> newgames = new ArrayList<>();
+
+                            for (Game game: gameArrayList) {
+
+                                Date currentDate = new Date();
+                                SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
+                                String currentDateTime = dateFormat.format(currentDate);
+
+                                Date date1 = (Date) dateFormat.parse(currentDateTime);
+
+                                Date date2 = (Date) dateFormat.parse(String.valueOf(game.getDate()));
+
+                                if(date1.after(date2)){
+                                    System.out.println("Date1 is after Date2");
+                                }else if (date1.before(date2)){
+
+                                    newgames.add(game);
+                                }
+                            }
+
+                            latestDate = Objects.requireNonNull(newgames.stream()
+                                    .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
+                                    .min(Comparator.comparing(LocalDate::toEpochDay))
+                                    .orElse(null)).format(dtf);
+
+                        }catch(NullPointerException | ParseException e ){
+
+                        }
+
+                        AllGamesFragment allGamesFragment = new AllGamesFragment();
+                        Bundle args = new Bundle();
+                        args.putString("baseUrl", baseUrl);
+                        args.putString("league", selectedLeague.getName());
+                        args.putInt("leagueId", selectedLeague.getLeagueId());
+                        args.putInt("season", selectedLeague.getSeason());
+                        args.putString("latestDate", latestDate);
+                        allGamesFragment.setArguments(args);
+                        appViewModel.replaceFragment(allGamesFragment, view);
+                    }
+                });
+
             }
         });
     }
@@ -300,17 +448,10 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
             }
         }
     }
-
     public void onCompletion() {
         if (mySwipeRefreshLayout.isRefreshing()) {
             mySwipeRefreshLayout.setRefreshing(false);
         }
-    }
-
-    @Override
-    public void onResume(){
-        adapter.notifyDataSetChanged();
-        super.onResume();
     }
     @Override
     public void onStart() {
@@ -320,10 +461,20 @@ public class AllGamesFragmentActivity  extends Fragment implements YearRecyclerV
     public void onStop() {
         super.onStop();
     }
-
+    @Override
+    public void onResume(){
+        super.onResume();
+    }
+    public void onSaveInstanceState(Bundle Bstate) {
+        super.onSaveInstanceState(Bstate);
+        state = listView.onSaveInstanceState();
+        Bstate.putParcelable(LIST_STATE, state);
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
+        }
+    }
     @Override
     public void onItemClick(View view, int position) {
         Toast.makeText(getActivity(), "You clicked " + yearRecyclerViewAdapter.getItem(position) + " on item position " + position, Toast.LENGTH_SHORT).show();
     }
-
 }

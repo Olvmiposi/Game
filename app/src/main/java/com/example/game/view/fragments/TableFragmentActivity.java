@@ -4,11 +4,11 @@ import static android.widget.AbsListView.OnScrollListener.SCROLL_STATE_IDLE;
 
 import android.app.SearchManager;
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +22,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.MenuItemCompat;
@@ -35,19 +36,15 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.game.R;
 import com.example.game.adapter.LeagueAdapter;
 import com.example.game.adapter.YearRecyclerViewAdapter;
+import com.example.game.businessLogic.TableBL;
 import com.example.game.model.Game;
 import com.example.game.model.League;
 import com.example.game.repository.AppDatabase;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
-import java.io.Serializable;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+
 
 public class TableFragmentActivity  extends Fragment implements YearRecyclerViewAdapter.ItemClickListener{
     private SearchView searchView;
@@ -56,22 +53,21 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
     private LeagueAdapter adapter;
     private YearRecyclerViewAdapter yearRecyclerViewAdapter;
     int currentFirstVisibleItem, currentVisibleItemCount, currentTotalItemCount, currentScrollState;
-    private ArrayList<Integer> years;
+    private ArrayList<Integer> years, allGamesLeaguesId;
     private ArrayList<Game> gameArrayList, checkedGamesBySeason;
     private SwipeRefreshLayout mySwipeRefreshLayout;
     private ListView listView;
     private ArrayList<Game> games;
     private LinearLayoutManager linearLayoutManager;
-    private ArrayList<Integer> allGamesLeaguesId, allPasswordLeaguesId, allSchrodingerLeaguesId, homeScore, awayScore;
     private static final String LIST_STATE = "listState";
     private static final String recyclerviewState = "recyclerviewState";
     private RecyclerView recyclerView;
-    private ArrayList<League> leagues;
-    private League league;
-    private Button table, allGames, password, schrodinger;
+
     private AppDatabase appDatabase;
-    private String maxDate = null;
+    private String maxDate, baseUrl;
     private Parcelable state = null;
+    private ArrayList<League> allGamesLeagues;
+
     private int isInvinsible;
     private Bundle bundle;
     private ProgressBar progressBar;
@@ -85,23 +81,25 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
         return inflater.inflate(R.layout.fragment_league_activity, container, false);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         setRetainInstance(true);
-
-        appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
-        appDatabase = AppDatabase.getAppDb(getContext());
-        mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
-        listView  = getView().findViewById(R.id.list_view);
-        recyclerView = getView().findViewById(R.id.rvYears);
-
-        progressBar = getView().findViewById(R.id.progressBar);
-        progressBar.setVisibility(View.GONE);
-        ((MainActivity) getActivity()).disableSwipe();
-        //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
         bundle = getArguments();
+        appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
+        appDatabase = AppDatabase.getAppDb(getContext());
+        mySwipeRefreshLayout = requireView().findViewById(R.id.swiperefresh);
+        listView  = requireView().findViewById(R.id.list_view);
+        recyclerView = requireView().findViewById(R.id.rvYears);
+
+        progressBar = requireView().findViewById(R.id.progressBar);
+        progressBar.setVisibility(View.GONE);
+        ((MainActivity) requireActivity()).disableSwipe();
+        //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
 
         Toolbar mToolbar;
         setHasOptionsMenu(true);
@@ -116,6 +114,21 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
 
         isInvinsible =  this.getArguments().getInt("isInvinsible", 0);
 
+        allGamesLeagues = new ArrayList<>();
+        years = new ArrayList<>();
+        years.add(2025);
+        years.add(2024);
+        years.add(2023);
+        years.add(2022);
+        years.add(2021);
+        years.add(2020);
+        years.add(2019);
+        years.add(2018);
+
+
+
+
+
 
         myUpdateOperation();
         onCompletion();
@@ -126,34 +139,15 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
         recyclerView.setLayoutManager(linearLayoutManager);
 
 
+
         if(state != null) {
             listView.onRestoreInstanceState(state);
         }
 
 
-        mySwipeRefreshLayout.setOnRefreshListener(() -> {
-            leagues = (ArrayList<League>) appDatabase.getGamesLeagues();
-            for (League league: leagues) {
-                appViewModel.getStanding(league);
-            }
-            onCompletion();
-        });
-
         //get all league id from available games
         allGamesLeaguesId = new ArrayList<>();
 
-        appDatabase.getGames().observe(getViewLifecycleOwner(), new Observer<List<Game>>() {
-            @Override
-            public void onChanged(List<Game> games) {
-                if(games == null){
-                }else {
-                    for(Game game : games ) {
-                        if(!allGamesLeaguesId.contains(game.getLeagueId()))
-                            allGamesLeaguesId.add(game.getLeagueId());
-                    }
-                }
-            }
-        });
 
         appViewModel.isLoading().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
             @Override
@@ -176,53 +170,10 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
                 mySwipeRefreshLayout.setEnabled(firstVisibleItem == 0 && topRowVerticalPosition >= 0);
             }
         });
-
-
     }
 
-    //@Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getActivity().getMenuInflater();
-        inflater.inflate(R.menu.options_menu, menu);
-        SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
-        searchMenuItem = menu.findItem(R.id.search);
-        searchView = (SearchView) searchMenuItem.getActionView();
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
-        searchView.setIconifiedByDefault(false);
-        searchView.setSubmitButtonEnabled(true);
-        searchView.setQueryHint(" leagues ");
-
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                //appViewModel.searchGameOnClick(query);
-                return false;
-            }
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
-                return false;
-            }
-        });
-
-        searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
-            @Override
-            public boolean onMenuItemActionExpand(MenuItem item) {
-                if(state != null) {
-                    listView.onRestoreInstanceState(state);
-                }
-                return true;
-            }
-            @Override
-            public boolean onMenuItemActionCollapse(MenuItem item) {
-                //myUpdateOperation();
-                if(state != null) {
-                    listView.onRestoreInstanceState(state);
-                }
-                return true;
-            }
-        });
-        return true;
+        return false;
     }
 
     @Override
@@ -236,8 +187,6 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
                 searchView.setIconifiedByDefault(false);
                 searchView.setQueryHint(" leagues ");
                 searchView.requestFocus();
-
-
                 searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                     @Override
                     public boolean onQueryTextSubmit(String query) {
@@ -245,7 +194,11 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
                     }
                     @Override
                     public boolean onQueryTextChange(String newText) {
-                        adapter.getFilter().filter(newText);
+                        try {
+                            adapter.getFilter().filter(newText);
+                        }catch (NullPointerException e){
+
+                        }
                         return false;
                     }
                 });
@@ -253,12 +206,16 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
                 searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                     @Override
                     public boolean onMenuItemActionExpand(MenuItem item) {
-
+                        if(state != null) {
+                            listView.onRestoreInstanceState(state);
+                        }
                         return true; // KEEP IT TO TRUE OR IT DOESN'T OPEN !!
                     }
                     @Override
                     public boolean onMenuItemActionCollapse(MenuItem item) {
-
+                        if(state != null) {
+                            listView.onRestoreInstanceState(state);
+                        }
                         return true; // OR FALSE IF YOU DIDN'T WANT IT TO CLOSE!
                     }
                 });
@@ -280,52 +237,155 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
         searchView.setQueryHint(" leagues ");
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     public void myUpdateOperation(){
-
         maxDate = null;
         ArrayList<String> maxDates = new ArrayList<>();
+        ArrayList<Integer> leagueIds = new ArrayList<>();
+        yearRecyclerViewAdapter = new YearRecyclerViewAdapter(getActivity(), years);
+        //while true, look for the latest checked games from the years
+        // if latest game is found, break
+        //////////////////////////////////////////////////////////
+        try{
+            int count = -1;
+            while(true) {
+                count++;
+                int season = yearRecyclerViewAdapter.getItem(count);
+                leagueIds = appDatabase.getDistinctLeagueBySeason(season);
+                for (int leagueId:leagueIds) {
+                    allGamesLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
+                }
+                if(!leagueIds.isEmpty()) {
+                    yearRecyclerViewAdapter.setSelected_position(count);
 
-        ArrayList<Integer> allGamesLeaguesId = (ArrayList<Integer>) bundle.getSerializable("allGamesLeaguesId");
-        ArrayList<League> allGamesLeagues = new ArrayList<>();
+                    mySwipeRefreshLayout.setOnRefreshListener(() -> {
+                        for (League league: allGamesLeagues) {
+                            new Thread(() -> {
+                                try {
+                                    TableBL tableBL = new TableBL(appDatabase);
+                                    tableBL.SeedTableDB(league.getLeagueId(), league.getSeason());
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }).start();
+                        }
+                        onCompletion();
+                    });
 
-        mySwipeRefreshLayout.setOnRefreshListener(() -> {
-            for (League league: allGamesLeagues){
-                appViewModel.getStanding(league);
-                onCompletion();
+                    for(League league: allGamesLeagues) {
+                        try{
+                            maxDates.add(league.getEnd());
+                        }catch(NullPointerException e ){
+
+                        }
+                    }
+                    adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 3, maxDates);
+                    listView.setAdapter(adapter);
+                    adapter.setLeagues(allGamesLeagues);
+                    adapter.notifyDataSetChanged();
+                    if(state != null) {
+                        listView.onRestoreInstanceState(state);
+                    }
+                    //onCompletion();
+                    listView.setTextFilterEnabled(true);
+                    listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                        @Override
+                        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                            League selectedLeague = new League();
+                            selectedLeague = (League) adapter.getItem(position);
+
+                            TableFragment tableFragment = new TableFragment();
+                            Bundle args = new Bundle();
+                            args.putString("baseUrl", baseUrl);
+                            args.putInt("season", selectedLeague.getSeason());
+                            args.putInt("leagueId", selectedLeague.getLeagueId());
+                            tableFragment.setArguments(args);
+                            appViewModel.replaceFragment(tableFragment, view);
+                        }
+                    });
+
+                    break;
+
+                }
+
             }
-        });
+
+        }catch(NullPointerException | IndexOutOfBoundsException e){}
 
 
-        recyclerView.setVisibility(View.GONE);
 
-        for(int leagueId : allGamesLeaguesId ) {
-            allGamesLeagues.add(appDatabase.getLeagueById(leagueId));
-        }
-
-
-        adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 3, maxDates);
-        listView.setAdapter(adapter);
-        if(state != null) {
-            listView.onRestoreInstanceState(state);
-        }
-        adapter.setLeagues(allGamesLeagues);
-        adapter.notifyDataSetChanged();
-        //onCompletion();
-        listView.setTextFilterEnabled(true);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        recyclerView.setAdapter(yearRecyclerViewAdapter); // set the Adapter to RecyclerView
+        yearRecyclerViewAdapter.setClickListener(new YearRecyclerViewAdapter.ItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                League selectedLeague = new League();
-                selectedLeague = (League) adapter.getItem(position);
+            public void onItemClick(View view, int position) {
 
-                TableFragment tableFragment = new TableFragment();
-                Bundle args = new Bundle();
-                args.putInt("season", selectedLeague.getSeason());
-                args.putInt("leagueId", selectedLeague.getLeagueId());
-                tableFragment.setArguments(args);
-                appViewModel.showFragment(tableFragment, view);
+                ArrayList<League> currentYearLeague = new ArrayList<>();
+                ArrayList<Integer> leagueIds = new ArrayList<>();
+
+                maxDates.clear();
+                allGamesLeagues.clear();
+
+                int season = yearRecyclerViewAdapter.getItem(position);
+
+                leagueIds = appDatabase.getDistinctLeagueBySeason(season);
+                for (int leagueId:leagueIds) {
+                    allGamesLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
+                }
+
+
+                mySwipeRefreshLayout.setOnRefreshListener(() -> {
+                    for (League league: allGamesLeagues) {
+                        new Thread(() -> {
+                            try {
+                                TableBL tableBL = new TableBL(appDatabase);
+                                tableBL.SeedTableDB(league.getLeagueId(), league.getSeason());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
+                    }
+                    onCompletion();
+                });
+
+                for(League league: allGamesLeagues) {
+                    try{
+                        maxDates.add(league.getEnd());
+
+                    }catch(NullPointerException e ){
+
+                    }
+                }
+
+                //make all password league season year equal to yearRecyclerViewAdapter item click
+
+                adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 3, maxDates);
+                listView.setAdapter(adapter);
+                adapter.setLeagues(allGamesLeagues);
+                adapter.notifyDataSetChanged();
+                if(state != null) {
+                    listView.onRestoreInstanceState(state);
+                }
+                onCompletion();
+                listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                        League selectedLeague = new League();
+                        selectedLeague = (League) adapter.getItem(position);
+
+                        TableFragment tableFragment = new TableFragment();
+                        Bundle args = new Bundle();
+                        args.putString("baseUrl", baseUrl);
+                        args.putInt("season", selectedLeague.getSeason());
+                        args.putInt("leagueId", selectedLeague.getLeagueId());
+                        tableFragment.setArguments(args);
+                        appViewModel.replaceFragment(tableFragment, view);
+                        adapter.notifyDataSetChanged();
+                    }
+                });
             }
         });
+
+
 
     }
     public void onScroll(AbsListView view, int firstVisibleItem,
@@ -347,7 +407,6 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
             }
         }
     }
-
     public void onCompletion() {
         if (mySwipeRefreshLayout.isRefreshing()) {
             mySwipeRefreshLayout.setRefreshing(false);
@@ -361,36 +420,21 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
     public void onStop() {
         super.onStop();
     }
-    //@Override
-    public void onRestoreInstanceState(Bundle Bstate) {
-        state = Bstate.getParcelable(LIST_STATE);
-        if(state != null) {
-            listView.onRestoreInstanceState(state);
-        }
+    @Override
+    public void onResume(){
+        super.onResume();
     }
     @Override
     public void onSaveInstanceState(Bundle Bstate) {
         super.onSaveInstanceState(Bstate);
         state = listView.onSaveInstanceState();
         Bstate.putParcelable(LIST_STATE, state);
-        Bstate.putSerializable("list", (Serializable) checkedGamesBySeason);
-
         if(state != null) {
             listView.onRestoreInstanceState(state);
         }
     }
-
-    @Override
-    public void onResume(){
-        adapter.notifyDataSetChanged();
-        onSaveInstanceState(new Bundle());
-        onRestoreInstanceState(new Bundle());
-        super.onResume();
-    }
-
     @Override
     public void onItemClick(View view, int position) {
         Toast.makeText(getActivity(), "You clicked " + yearRecyclerViewAdapter.getItem(position) + " on item position " + position, Toast.LENGTH_SHORT).show();
     }
-
 }

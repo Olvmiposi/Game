@@ -4,6 +4,7 @@ import android.app.SearchManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -15,7 +16,6 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -28,31 +28,29 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.game.R;
 import com.example.game.adapter.PasswordAdapter;
-import com.example.game.adapter.SearchAdapter;
 import com.example.game.model.Game;
-import com.example.game.model.SearchString;
 import com.example.game.repository.AppDatabase;
 import com.example.game.view.ActiveActivitiesTracker;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 import com.example.game.service.IOnBackPressed;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
-public class PasswordsFragment extends Fragment implements IOnBackPressed {
+public class PasswordsFragment extends Fragment implements IOnBackPressed, AbsListView.OnScrollListener  {
     private AppViewModel appViewModel;
     private AppDatabase appDatabase;
     private SwipeRefreshLayout mySwipeRefreshLayout;
     private PasswordAdapter adapter;
     private SearchView searchView;
     private MenuItem searchMenuItem;
-    private String maxDate, league ;
+    int currentFirstVisibleItem, currentVisibleItemCount, currentTotalItemCount, currentScrollState;
+    private String maxDate, league, baseUrl ;
     private int isInvinsible;
     private TextView textView, highest;
-    private Parcelable state;
+
     private Button showMore;
+    private Parcelable state;
     private Bundle bundle;
     private final ArrayList<Game> gamesList = new ArrayList<Game>();
     private int leagueId, season;
@@ -68,9 +66,11 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
+        bundle = getArguments();
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
         todayUsernameList_View  = requireView().findViewById(R.id.todayUsernameList_View);
         mySwipeRefreshLayout = requireView().findViewById(R.id.swiperefresh);
@@ -78,7 +78,6 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
         showMore = requireView().findViewById(R.id.showMore);
 
         ((MainActivity) requireActivity()).disableSwipe();
-        bundle = getArguments();
 
         isInvinsible = bundle.getInt("isInvinsible", 0);
         leagueId = bundle.getInt("leagueId", 0);
@@ -112,9 +111,6 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
             appViewModel.getTodayUsername();
         });
 
-        Parcelable state = todayUsernameList_View.onSaveInstanceState();
-        todayUsernameList_View.onRestoreInstanceState(state);
-
         //get today games//
         getTodayCheckedGames();
 
@@ -135,9 +131,12 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
     public void getTodayCheckedGames(){
         appDatabase.getCheckedGamesByDate(maxDate, leagueId ).observe(getViewLifecycleOwner() , games -> {
             if (games != null) {
-                adapter = new PasswordAdapter(getActivity(), (ArrayList<Game>) games, R.layout.passwords_rows, isInvinsible);
+                adapter = new PasswordAdapter(getActivity(), (ArrayList<Game>) games, R.layout.passwords_rows, isInvinsible, baseUrl);
                 todayUsernameList_View.setAdapter(adapter);
                 adapter.setGames((ArrayList<Game>) games);
+                if(state != null) {
+                    todayUsernameList_View.onRestoreInstanceState(state);
+                }
                 adapter.notifyDataSetChanged();
                 onCompletion();
             }else{
@@ -148,16 +147,15 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
     }
     public void getAllCheckedGamesByLeagueId(){
         appDatabase.getAllCheckedGamesByLeagueId(leagueId, season).observe(this, games -> {
-            adapter = new PasswordAdapter(getActivity(), (ArrayList<Game>) games, R.layout.passwords_rows, isInvinsible);
+            adapter = new PasswordAdapter(getActivity(), (ArrayList<Game>) games, R.layout.passwords_rows, isInvinsible, baseUrl);
             todayUsernameList_View.setAdapter(adapter);
             adapter.setGames((ArrayList<Game>) games);
+            // Restore previous state (including selected item index and scroll position)
+            if(state != null) {
+                todayUsernameList_View.onRestoreInstanceState(state);
+            }
             adapter.notifyDataSetChanged();
             onCompletion();
-            for(Game game: games){
-                appDatabase.getGamesByFixtureId(game.getFixtureId()).observe(PasswordsFragment.this, games1 -> {
-                    appDatabase.removeAllGame((ArrayList<Game>) games1);
-                });
-            }
         });
     }
     public void onCompletion() {
@@ -186,7 +184,12 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                }catch (NullPointerException e){
+
+                }
+
                 return false;
             }
         });
@@ -223,7 +226,11 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
                     }
                     @Override
                     public boolean onQueryTextChange(String newText) {
-                        adapter.getFilter().filter(newText);
+                        try {
+                            adapter.getFilter().filter(newText);
+                        }catch (NullPointerException e){
+
+                        }
                         return false;
                     }
                 });
@@ -268,7 +275,12 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
         super.onStop();
         ActiveActivitiesTracker.activityStopped();
     }
-
+    @Override
+    public void onPause(){
+        // Save ListView state @ onPause
+        state = todayUsernameList_View.onSaveInstanceState();
+        super.onPause();
+    }
     @Override
     public void onResume(){
         super.onResume();
@@ -283,4 +295,23 @@ public class PasswordsFragment extends Fragment implements IOnBackPressed {
 //        appViewModel.backstackFragment(getView());
     }
 
+    public void onScroll(AbsListView view, int firstVisibleItem,
+                         int visibleItemCount, int totalItemCount) {
+        this.currentFirstVisibleItem = firstVisibleItem;
+        this.currentVisibleItemCount = visibleItemCount;
+        this.currentTotalItemCount = totalItemCount;
+    }
+
+    public void onScrollStateChanged(AbsListView view, int scrollState) {
+        this.currentScrollState = scrollState;
+        this.isScrollCompleted();
+    }
+
+    private void isScrollCompleted() {
+        if (currentFirstVisibleItem + currentVisibleItemCount >= currentTotalItemCount) {
+            if (this.currentVisibleItemCount > 0
+                    && this.currentScrollState == SCROLL_STATE_IDLE) {
+            }
+        }
+    }
 }

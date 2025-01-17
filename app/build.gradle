@@ -59,6 +59,9 @@ dependencies {
     implementation libs.room.ktx
     implementation libs.room.paging
 
+    // 1. Use Guava in your implementation only:
+    implementation("com.google.guava:guava:33.3.1-jre")
+
     implementation libs.swiperefreshlayout
 
 

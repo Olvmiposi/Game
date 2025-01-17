@@ -27,4 +27,7 @@ public interface UsageDAO {
 
     @Delete
     void delete(Usage usage);
+    @Query("DELETE FROM usage")
+
+    void nukeTable();
 }

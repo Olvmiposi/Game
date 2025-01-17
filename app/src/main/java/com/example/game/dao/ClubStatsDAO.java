@@ -20,14 +20,17 @@ public interface ClubStatsDAO {
     void insertAll(ArrayList<ClubStats> table);
     @Update
     void update(ClubStats table);
-    @Query("SELECT * FROM clubStats WHERE leagueId = :leagueId ORDER By position, datetime Asc")
-    List<ClubStats> getTable(int leagueId);
+    @Query("SELECT distinct * FROM clubStats WHERE leagueId = :leagueId and season = :season ORDER By position, goalsDiff, datetime desc")
+    List<ClubStats> getTable(int leagueId, int season);
 
-    @Query("SELECT * FROM clubStats WHERE leagueId = :leagueId and dateTime = :date")
+    @Query("SELECT distinct * FROM clubStats WHERE leagueId = :leagueId and dateTime = :date ORDER By position, goalsFor asc")
     List<ClubStats> getTableByDate(int leagueId, String date);
 
     @Query("SELECT * FROM clubStats WHERE leagueId = :leagueId and dateTime = :date and name = :name ")
     ClubStats getGamePosition(int leagueId, String date, String name);
     @Delete
     void delete(ClubStats table);
+
+    @Query("DELETE FROM clubStats")
+    void nukeTable();
 }

@@ -1,7 +1,5 @@
 package com.example.game.view.fragments;
 
-import android.app.AlertDialog;
-
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -9,7 +7,6 @@ import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import android.app.SearchManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -26,7 +23,6 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -40,17 +36,14 @@ import com.example.game.R;
 import com.example.game.adapter.LeagueAdapter;
 import com.example.game.databinding.CallApiActivityBinding;
 import com.example.game.model.CallApiModel;
-import com.example.game.model.Game;
 import com.example.game.model.League;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class CallApiFragment extends Fragment implements IOnBackPressed {
     private AppViewModel appViewModel;
@@ -58,11 +51,13 @@ public class CallApiFragment extends Fragment implements IOnBackPressed {
     private LeagueAdapter adapter;
     private ListView callApiList_View;
     private SearchView searchView;
-    private MenuItem searchMenuItem;
+    private ArrayList<League> favoriteLeagues;
+    private ArrayList<Integer> favoriteLeaguesInt;
 
+    private MenuItem searchMenuItem;
     private int leagueId;
     private ImageButton callApi, verifyBtn, createGames, updateLeague;
-    private String  from_date, to_date, seasonYear;
+    private String  from_date, to_date, seasonYear, baseUrl;
     private SwipeRefreshLayout mySwipeRefreshLayout;
     private ProgressBar progressBar;
     private EditText leagueIdEditText, fromDateEditText, toDateEdittext, seasonYearEdittext;
@@ -85,8 +80,11 @@ public class CallApiFragment extends Fragment implements IOnBackPressed {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         setRetainInstance(true);
+        bundle = getArguments();
         appViewModel = new ViewModelProvider((ViewModelStoreOwner) this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
         // TODO: Use the ViewModel
         callApiList_View  = getView().findViewById(R.id.callApiList_View);
@@ -101,7 +99,7 @@ public class CallApiFragment extends Fragment implements IOnBackPressed {
         progressBar = getView().findViewById(R.id.progressBar);
         mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
         progressBar.setVisibility(View.GONE);
-        ((MainActivity) getActivity()).disableSwipe();
+        ((MainActivity) requireActivity()).disableSwipe();
         //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
 
 
@@ -113,8 +111,6 @@ public class CallApiFragment extends Fragment implements IOnBackPressed {
         }
         mToolbar.setTitle(null);
         mToolbar.inflateMenu(R.menu.options_menu);
-
-        bundle = getArguments();
 
         fromDateEditText.setText("2024-01-01");
         toDateEdittext.setText("2025-01-01");
@@ -130,54 +126,54 @@ public class CallApiFragment extends Fragment implements IOnBackPressed {
         }
 
         ArrayList<String> maxDate = new ArrayList<>();
-        ArrayList<Integer> leagueIdArrayList = new ArrayList<>();
-        ArrayList<League> leaguesToShow = new ArrayList<>();
-        appDatabase.getLeagues().observe((LifecycleOwner) this, new Observer<List<League>>() {
+//        ArrayList<Integer> leagueIdArrayList = new ArrayList<>();
+        //ArrayList<League> leaguesToShow = (ArrayList<League>) bundle.getSerializable("allUniqueLeagues");
 
-            @Override
-            public void onChanged(List<League> leagues) {
-                if(leagues != null){
-                    for (League league: leagues) {
-                        leagueIdArrayList.add(league.getLeagueId());
-                    }
+        favoriteLeagues =  new ArrayList<>();
+        favoriteLeaguesInt =  new ArrayList<>();
 
-                    ArrayList<Integer> uniqueList2 = new ArrayList<>();
+        favoriteLeaguesInt = appDatabase.getDistinctLeague();
 
-                    for (int id: leagueIdArrayList) {
-                        if(!uniqueList2.contains(id)){
-                            uniqueList2.add(id);
-                            League newLeague = appDatabase.getLeagueById(id);
-                            leaguesToShow.add(newLeague);
-                        }
-                    }
-                    uniqueList2.size();
-                    leaguesToShow.size();
+        for (int id: favoriteLeaguesInt) {
+            League newLeague = appDatabase.getLeagueById(id);
+            favoriteLeagues.add(newLeague);
+        }
 
-                    adapter = new LeagueAdapter(getActivity(), (ArrayList<League>) leaguesToShow, R.layout.callapi_activity_rows, 0, maxDate);
-                    callApiList_View.setAdapter(adapter);
-                    if(state != null) {
-                        callApiList_View.onRestoreInstanceState(state);
-                    }
-                    adapter.setLeagues((ArrayList<League>) leaguesToShow);
-                    adapter.notifyDataSetChanged();
-                    callApiList_View.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                        @Override
-                        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                            League league = new League();
-                            league = (League) adapter.getItem(position);
+        favoriteLeagues.size();
 
-                            ShowCallApiFragment showCallApiFragment = new ShowCallApiFragment();
-                            Bundle args = new Bundle();
-                            args.putInt("leagueId", league.getLeagueId());
-                            showCallApiFragment.setArguments(args);
-                            appViewModel.addFragment(showCallApiFragment, view);
-                        }
-                    });
-                }else{
-                    callApiList_View.setAdapter(null);
-                }
+
+        ArrayList<League> leaguesToShow = new ArrayList<League>(favoriteLeagues);
+
+        leaguesToShow.addAll( (ArrayList<League>) bundle.getSerializable("allUniqueLeagues"));
+
+
+        if(leaguesToShow != null){
+
+            adapter = new LeagueAdapter(getActivity(), (ArrayList<League>) leaguesToShow, R.layout.callapi_activity_rows, 0, maxDate);
+            callApiList_View.setAdapter(adapter);
+            if(state != null) {
+                callApiList_View.onRestoreInstanceState(state);
             }
-        });
+            adapter.setLeagues((ArrayList<League>) leaguesToShow);
+            adapter.notifyDataSetChanged();
+            callApiList_View.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    League league = new League();
+                    league = (League) adapter.getItem(position);
+
+                    ShowCallApiFragment showCallApiFragment = new ShowCallApiFragment();
+                    Bundle args = new Bundle();
+                    args.putString("baseUrl", baseUrl);
+                    args.putInt("leagueId", league.getLeagueId());
+                    showCallApiFragment.setArguments(args);
+                    appViewModel.replaceFragment(showCallApiFragment, view);
+                }
+            });
+        }else{
+            callApiList_View.setAdapter(null);
+        }
+
         callApi.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -324,7 +320,12 @@ public class CallApiFragment extends Fragment implements IOnBackPressed {
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                    adapter.notifyDataSetChanged();
+                }catch (NullPointerException e){
+
+                }
                 return false;
             }
         });
@@ -368,7 +369,12 @@ public class CallApiFragment extends Fragment implements IOnBackPressed {
                     }
                     @Override
                     public boolean onQueryTextChange(String newText) {
-                        adapter.getFilter().filter(newText);
+                        try {
+                            adapter.getFilter().filter(newText);
+                            adapter.notifyDataSetChanged();
+                        }catch (NullPointerException e){
+
+                        }
                         return false;
                     }
                 });

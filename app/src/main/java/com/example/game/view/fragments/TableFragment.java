@@ -1,7 +1,5 @@
 package com.example.game.view.fragments;
 
-import android.annotation.SuppressLint;
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,21 +12,19 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.game.R;
 import com.example.game.adapter.TableAdapter;
+import com.example.game.businessLogic.TableBL;
 import com.example.game.model.ClubStats;
-import com.example.game.model.Game;
 import com.example.game.model.League;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
@@ -36,10 +32,8 @@ import com.example.game.view.ActiveActivitiesTracker;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
-import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 public class TableFragment extends Fragment implements IOnBackPressed {
@@ -51,7 +45,7 @@ public class TableFragment extends Fragment implements IOnBackPressed {
     private SwipeRefreshLayout mySwipeRefreshLayout;
     private ListView listView;
     private League league;
-    private String maxDate;
+    private String maxDate, baseUrl;
     private TextView tableName;
     private ArrayList<ClubStats> table, newTable;
     private AppDatabase appDatabase;
@@ -68,9 +62,11 @@ public class TableFragment extends Fragment implements IOnBackPressed {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
+        bundle = getArguments();
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
         mySwipeRefreshLayout = requireView().findViewById(R.id.swiperefresh);
         listView  = requireView().findViewById(R.id.tablesListView);
@@ -84,11 +80,16 @@ public class TableFragment extends Fragment implements IOnBackPressed {
             appViewModel.getStanding(league);
         });
 
-        bundle = getArguments();
-
-
         int leagueId = bundle.getInt("leagueId", 0);
         int season = bundle.getInt("season", 0);
+        new Thread(() -> {
+            try {
+                TableBL tableBL = new TableBL(appDatabase);
+                tableBL.SeedTableDB(leagueId, season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
 
         try{
             league = new League();
@@ -99,9 +100,11 @@ public class TableFragment extends Fragment implements IOnBackPressed {
 
             tableName.setText(league.getName());
 
-            table = appDatabase.getTable(league.getLeagueId());
+            table = appDatabase.getTable(league.getLeagueId(), league.getSeason());
 
         }catch (NullPointerException e){}
+
+
 
 
 
@@ -124,7 +127,7 @@ public class TableFragment extends Fragment implements IOnBackPressed {
         try{
             maxDate = table.get(table.size() - 1).getDateTime();
             newTable = appDatabase.getTableByDate(league.getLeagueId(), maxDate );
-            adapter = new TableAdapter(getActivity(),newTable, R.layout.tablestats_row );
+            adapter = new TableAdapter(getActivity(),newTable, R.layout.tablestats_row , baseUrl);
             listView.setAdapter(adapter);
             adapter.setClubStats((ArrayList<ClubStats>) newTable);
             adapter.notifyDataSetChanged();

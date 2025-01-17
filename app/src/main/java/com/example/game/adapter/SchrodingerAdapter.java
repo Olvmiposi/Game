@@ -31,7 +31,6 @@ import com.example.game.model.Game;
 import com.example.game.repository.AppDatabase;
 import com.example.game.view.MainActivity;
 import com.example.game.view.PredictionsActivity;
-import com.example.game.view.fragments.PredictionsFragment;
 import com.example.game.viewModel.AppViewModel;
 
 import java.io.Serializable;
@@ -44,6 +43,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -57,14 +57,14 @@ public class SchrodingerAdapter extends BaseAdapter {
     private LinearLayout li, lLayout;
     private SchrodingerFilter gameFilter;
     private Button schrodingerBtn;
-    private TextView username, gender, gameType, division, home, away, score1, score2, time, date, vs, position1, position2, pointDifference, headers;
+    private TextView username, gender, gameType, division, home, away, score1, score2, time, date, vs, position1, position2, pointDifference, headers, odds;
     private ImageView up_arrow1, down_arrow1, up_arrow2, down_arrow2;
     private Game currentGame, newGame;
     private ImageView profilePhoto;
     private ArrayList<Integer> homeScore, awayScore, maxScore;
     private ArrayList<Game>  homeGame, awayGame;
     private ArrayList<ClubStats> table, newTable;
-    private String maxDate;
+    private String maxDate, baseUrl;
     private ClubStats homePosition, awayPosition;
     private AppDatabase appDatabase;
     public ArrayList<Game> getGames() {
@@ -73,12 +73,13 @@ public class SchrodingerAdapter extends BaseAdapter {
     public void setGames(ArrayList<Game> games) {
         this.games = games;
     }
-    public SchrodingerAdapter(Activity activity, ArrayList<Game> games, int layout, int isInvinsible ) {
+    public SchrodingerAdapter(Activity activity, ArrayList<Game> games, int layout, int isInvinsible, String baseUrl ) {
         this.activity = activity;
         this.games = games;
         this.isInvinsible = isInvinsible;
         this.layout = layout;
         this.filteredList = games;
+        this.baseUrl = baseUrl;
         getFilter();
     }
     @Override
@@ -116,6 +117,7 @@ public class SchrodingerAdapter extends BaseAdapter {
         schrodingerBtn = convertView.findViewById(R.id.schrodingerBtn);
         vs = convertView.findViewById(R.id.vs);
         pointDifference = convertView.findViewById(R.id.pointdifference);
+        odds = convertView.findViewById(R.id.odds);
 
         position1 = convertView.findViewById(R.id.position1);
         position2 = convertView.findViewById(R.id.position2);
@@ -163,7 +165,7 @@ public class SchrodingerAdapter extends BaseAdapter {
             up_arrow2.setVisibility(VISIBLE);
             down_arrow2.setVisibility(VISIBLE);
 
-            table = appDatabase.getTable(currentGame.getLeagueId());
+            table = appDatabase.getTable(currentGame.getLeagueId(), currentGame.getSeason());
             DateTimeFormatter dtf = new DateTimeFormatterBuilder()
                     .parseCaseInsensitive()
                     .appendPattern("MM/dd/yyyy HH:mm")
@@ -173,17 +175,17 @@ public class SchrodingerAdapter extends BaseAdapter {
             headers.setVisibility(View.GONE);
             try {
 
-                List<String> outList = filteredList.stream().map(Game::getDate).distinct().collect(Collectors.toList());
+                List<String> outList = filteredList.stream().map(m -> String.valueOf(m.getDate())).distinct().collect(Collectors.toList());
 
                 for (int i = 0; i < outList.size(); i++) {
-                    if (currentGame.getDate() == outList.get(i)) {
+                    if (String.valueOf(currentGame.getDate()) == outList.get(i)) {
                         headers.setVisibility(VISIBLE);
 
                         SimpleDateFormat format1 = new SimpleDateFormat("MM/dd/yyyy");
                         SimpleDateFormat format2 = new SimpleDateFormat("MMMM d, yyyy");
                         Date date = null;
 
-                        date = format1.parse(currentGame.getDate());
+                        date = format1.parse(String.valueOf(currentGame.getDate()));
                         headers.setText(format2.format(date));
 
 
@@ -200,8 +202,21 @@ public class SchrodingerAdapter extends BaseAdapter {
                 homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getHome());
                 awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getAway());
 
-                position1.setText(String.valueOf(homePosition.getPosition()));
-                position2.setText(String.valueOf(awayPosition.getPosition()));
+                if(homePosition == null ){
+                    position1.setText(String.valueOf(0));
+                    pointDifference.setText(String.valueOf(0));
+
+                }else{
+                    position1.setText(String.valueOf(homePosition.getPosition()));
+                }
+
+                if(awayPosition == null ){
+                    position2.setText(String.valueOf(0));
+                    pointDifference.setText(String.valueOf(0));
+
+                }else{
+                    position2.setText(String.valueOf(awayPosition.getPosition()));
+                }
 
                 if(homePosition.getPosition() > awayPosition.getPosition()){
                     pointDifference.setText(String.valueOf(awayPosition.getPoints() - homePosition.getPoints()));
@@ -230,43 +245,92 @@ public class SchrodingerAdapter extends BaseAdapter {
             score1.setText(currentGame.getScore1());
             score2.setText(currentGame.getScore2());
             time.setText(currentGame.getTime());
-            date.setText(currentGame.getDate());
+            date.setText(String.valueOf(currentGame.getDate()));
 
             appViewModel = new ViewModelProvider((MainActivity) context).get(AppViewModel.class);
-            appViewModel.init(context);
+            appViewModel.setBaseUrl(baseUrl);
+            appViewModel.init(context, baseUrl);
 
-            Date currentDate = new Date();
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
-            SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm") ;
-
-            String currentDateTime = dateFormat.format(currentDate);
-            String currentTime = timeFormat.format(currentDate);
 
             try {
+                Date currentDate = new Date();
+                Date time = new Date(System.currentTimeMillis());
+
+                SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
+                SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a",  Locale.FRANCE) ;
+
+                String currentDateTime = dateFormat.format(currentDate);
+                String currentTime = timeFormat.format(time);
+
                 Date date1 = dateFormat.parse(currentDateTime);
-                Date date2 = dateFormat.parse(currentGame.getDate());
+                Date date2 = dateFormat.parse(String.valueOf(currentGame.getDate()));
+
                 Date time1 = timeFormat.parse(currentTime);
-                Date time2 = timeFormat.parse(currentGame.getTime());
+                Date time2 = timeFormat.parse(currentGame.getTime().toLowerCase());
+
+                System.out.println("date1 :" + date1);
+                System.out.println("date2 :" + date2);
 
                 assert date2 != null;
-                if(date2.before(date1) /*&& time2.before(time1)*/ && currentGame.getChecked() == 0 ){
+                assert time2 != null;
+                if(date2.before(date1)  && currentGame.getChecked() == 0 ){
                     lLayout.setBackgroundColor(Color.parseColor("#DA5353")); //red - if game is schrodinger but not won
                     convertView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
 
+                            Game newGame = new Game();
+                            newGame = filteredList.get(position);
+
+                            Intent Intent = new Intent(context, PredictionsActivity.class);
+                            Bundle b = new Bundle();
+                            b.putSerializable("game",(Serializable)newGame);
+                            Intent.putExtras(b);
+                            Intent.putExtra("baseUrl", baseUrl);
+                            activity.startActivity(Intent);
+
                         }
                     });
-                }else if (currentGame.getChecked() == 1){
+                }
+                else if( date2.equals(date1) && time2.before(time1) && currentGame.getChecked() == 0 ){
+                    lLayout.setBackgroundColor(Color.parseColor("#DA5353")); //red - if game is schrodinger but not won
+                    convertView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+
+                            Game newGame = new Game();
+                            newGame = filteredList.get(position);
+
+                            Intent Intent = new Intent(context, PredictionsActivity.class);
+                            Bundle b = new Bundle();
+                            b.putSerializable("game",(Serializable)newGame);
+                            Intent.putExtras(b);
+                            Intent.putExtra("baseUrl", baseUrl);
+                            activity.startActivity(Intent);
+
+                        }
+                    });
+                }
+                else if (currentGame.getChecked() == 1){
                     lLayout.setBackgroundColor(Color.parseColor("#FFA733F9"));//purple - game is schrodinger but won
                     convertView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
 
+                            Game newGame = new Game();
+                            newGame = filteredList.get(position);
+
+                            Intent Intent = new Intent(context, PredictionsActivity.class);
+                            Bundle b = new Bundle();
+                            b.putSerializable("game",(Serializable)newGame);
+                            Intent.putExtras(b);
+                            Intent.putExtra("baseUrl", baseUrl);
+                            activity.startActivity(Intent);
+
                         }
                     });
-                }else if(date2.after(date1) /*&& time2.after(time1)*/ && currentGame.getChecked() == 0  ){
+                }else if(date2.after(date1)  && currentGame.getChecked() == 0  ){
                     lLayout.setBackgroundColor(Color.parseColor("#F9AA33"));//yellow - if game is in the future or game is schrodinger
                     convertView.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -279,13 +343,8 @@ public class SchrodingerAdapter extends BaseAdapter {
                             Bundle b = new Bundle();
                             b.putSerializable("game",(Serializable)newGame);
                             Intent.putExtras(b);
-                            context.startActivity(Intent);
-
-//                            PredictionsFragment predictionsFragment = new PredictionsFragment();
-//                            Bundle args = new Bundle();
-//                            args.putSerializable("game",(Serializable)newGame);
-//                            predictionsFragment.setArguments(args);
-//                            appViewModel.showFragment(predictionsFragment, v);
+                            Intent.putExtra("baseUrl", baseUrl);
+                            activity.startActivity(Intent);
 
                         }
                     });
@@ -302,13 +361,8 @@ public class SchrodingerAdapter extends BaseAdapter {
                             Bundle b = new Bundle();
                             b.putSerializable("game",(Serializable)newGame);
                             Intent.putExtras(b);
-                            context.startActivity(Intent);
-
-//                            PredictionsFragment predictionsFragment = new PredictionsFragment();
-//                            Bundle args = new Bundle();
-//                            args.putSerializable("game",(Serializable)newGame);
-//                            predictionsFragment.setArguments(args);
-//                            appViewModel.showFragment(predictionsFragment, v);
+                            Intent.putExtra("baseUrl", baseUrl);
+                            activity.startActivity(Intent);
 
                         }
                     });
@@ -333,7 +387,7 @@ public class SchrodingerAdapter extends BaseAdapter {
 
                     builder.setPositiveButton("Yes", (DialogInterface.OnClickListener) (dialog, which) -> {
                         finalSelectedgame.setSchrodinger(0);
-                        appViewModel.verifyGame(v, finalSelectedgame, finalSelectedgame.getId());
+                        appViewModel.updateSchrodinger(v, finalSelectedgame, finalSelectedgame.getId());
                         getGames().remove(finalSelectedgame);
                         filteredList.remove(finalSelectedgame);
                         notifyDataSetChanged();
@@ -344,7 +398,6 @@ public class SchrodingerAdapter extends BaseAdapter {
                     AlertDialog alertDialog = builder.create();
                     alertDialog.show();
                     alertDialog.setCanceledOnTouchOutside(true);
-                    notifyDataSetChanged();
                     return false;
                 }
             });
@@ -359,7 +412,7 @@ public class SchrodingerAdapter extends BaseAdapter {
             score1.setText(currentGame.getScore1());
             score2.setText(currentGame.getScore2());
             time.setText(currentGame.getTime());
-            date.setText(currentGame.getDate());
+            date.setText(String.valueOf(currentGame.getDate()));
 
             myPredictions = new ArrayList<>();
             possibilities = new ArrayList<>();
@@ -370,7 +423,22 @@ public class SchrodingerAdapter extends BaseAdapter {
 
             if(Objects.equals(currentGame.checked, 1)){
                 lLayout.setBackgroundColor(Color.parseColor("#34833C"));//green
-                convertView.setOnClickListener(null);
+//                convertView.setOnClickListener(new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View v) {
+//
+//                        Game newGame = new Game();
+//                        newGame = filteredList.get(position);
+//
+//                        Intent Intent = new Intent(context, PredictionsActivity.class);
+//                        Bundle b = new Bundle();
+//                        b.putSerializable("game",(Serializable)newGame);
+//                        Intent.putExtras(b);
+//                        Intent.putExtra("baseUrl", baseUrl);
+//                        activity.startActivity(Intent);
+//
+//                    }
+//                });
             }
 
             if(Objects.equals(currentGame.home, "null")){
@@ -384,33 +452,44 @@ public class SchrodingerAdapter extends BaseAdapter {
                     }else{
                         lLayout.setBackgroundColor(Color.parseColor("#F9AA33"));//yellow
                     }
-                    //newGame = filteredList.get(position);
-                    convertView.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
 
-                            Game newGame = new Game();
-                            newGame = filteredList.get(position);
-
-                            Intent Intent = new Intent(context, PredictionsActivity.class);
-                            Bundle b = new Bundle();
-                            b.putSerializable("game",(Serializable)newGame);
-                            Intent.putExtras(b);
-                            context.startActivity(Intent);
-
-//                            PredictionsFragment predictionsFragment = new PredictionsFragment();
-//                            Bundle args = new Bundle();
-//                            args.putSerializable("game",(Serializable)newGame);
-//                            predictionsFragment.setArguments(args);
-//                            appViewModel.addFragment(predictionsFragment, v);
-
-                        }
-                    });
+//                    convertView.setOnClickListener(new View.OnClickListener() {
+//                        @Override
+//                        public void onClick(View v) {
+//                            Game newGame = new Game();
+//                            newGame = filteredList.get(position);
+//                            Intent Intent = new Intent(context, PredictionsActivity.class);
+//                            Bundle b = new Bundle();
+//                            b.putSerializable("game",(Serializable)newGame);
+//                            Intent.putExtras(b);
+//                            Intent.putExtra("baseUrl", baseUrl);
+//                            activity.startActivity(Intent);
+//
+//                        }
+//                    });
                 }
             }
 
+            convertView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    Game newGame = new Game();
+                    newGame = filteredList.get(position);
+
+                    Intent Intent = new Intent(context, PredictionsActivity.class);
+                    Bundle b = new Bundle();
+                    b.putSerializable("game",(Serializable)newGame);
+                    Intent.putExtras(b);
+                    Intent.putExtra("baseUrl", baseUrl);
+                    activity.startActivity(Intent);
+
+                }
+            });
+
             appViewModel = new ViewModelProvider((MainActivity) context).get(AppViewModel.class);
-            appViewModel.init(context);
+            appViewModel.setBaseUrl(baseUrl);
+            appViewModel.init(context, baseUrl);
 
             schrodingerBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -427,9 +506,9 @@ public class SchrodingerAdapter extends BaseAdapter {
                     Game finalSelectedGame = selectedgame;
                     builder.setPositiveButton("Yes", (DialogInterface.OnClickListener) (dialog, which) -> {
                         finalSelectedGame.setSchrodinger(1);
-                        appViewModel.verifyGame(v, finalSelectedGame, finalSelectedGame.getId());
-                        notifyDataSetChanged();
+                        appViewModel.updateSchrodinger(v, finalSelectedGame, finalSelectedGame.getId());
                         dialog.cancel();
+                        notifyDataSetChanged();
                     });
                     builder.setNegativeButton("No", (DialogInterface.OnClickListener) (dialog, which) -> {
                         dialog.cancel();
@@ -447,7 +526,7 @@ public class SchrodingerAdapter extends BaseAdapter {
     public ArrayList<Game> myPredictionsList(Game game){
 
         possibilities = (ArrayList<Game>) appDatabase.getGamePossibilitiess(game.getFixtureId());
-        maxScore = appDatabase.getCheckedGamesByHomeAndAway(game.getHome(), game.getAway());
+        maxScore = appDatabase.getCheckedGamesByHomeAndAway(game.getHome(), game.getAway(), game.getSeason());
 
         try{
             int home = maxScore.get(0);
@@ -472,8 +551,8 @@ public class SchrodingerAdapter extends BaseAdapter {
                 @Override
                 public int compare(Game t1, Game t2) {
                     if (t1.getDate() != null) {
-                        String sDate1 = t1.getDate();
-                        String sDate2 = t2.getDate();
+                        String sDate1 = String.valueOf(t1.getDate());
+                        String sDate2 = String.valueOf(t2.getDate());
 
                         Date date1 = null;
                         Date date2 = null;
@@ -497,7 +576,6 @@ public class SchrodingerAdapter extends BaseAdapter {
         } catch (IllegalArgumentException e) {
 
         }
-
     }
 
     public Filter getFilter() {

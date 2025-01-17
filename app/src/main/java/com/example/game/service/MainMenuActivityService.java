@@ -22,14 +22,18 @@ public class MainMenuActivityService extends IntentService {
     private AppDatabase appDatabase;
     private League league;
     private ArrayList<Integer> allGamesLeaguesId,allGamesSeason;
-
     private ArrayList<Game>  games;
 
 
-    public MainMenuActivityService() {
+    public MainMenuActivityService () {
+        super("MainMenuActivityService");
+    }
+
+
+    public MainMenuActivityService(String baseUrl) {
         super("MainMenuActivityService");
         appRepository = new AppRepository();
-        appRepository.init(getBaseContext());
+        appRepository.init(getBaseContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getBaseContext());
     }
 
@@ -45,13 +49,14 @@ public class MainMenuActivityService extends IntentService {
             appRepository.getUsernameInfo();
             appRepository.getTodayGame();
             appRepository.getCheckedGames();
-            appRepository.getGames();
+            //appRepository.getGames();
             if (appRepository.getGamesLiveData() != null){
+                appRepository.getSchrodingers();// must be gotten last
                 appRepository.getSchrodingerGames();// must be gotten last
             }
 
 
-        } catch (InterruptedException e) {
+        } catch (NullPointerException | InterruptedException e) {
             // Print stack trace if an
             // InterruptedException occurs
             e.printStackTrace();

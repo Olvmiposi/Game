@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Build;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import android.widget.Button;
 import android.widget.Filter;
 import android.widget.Filterable;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.lifecycle.ViewModelProvider;
@@ -26,7 +28,6 @@ import com.example.game.R;
 import com.example.game.model.ClubStats;
 import com.example.game.model.Game;
 import com.example.game.repository.AppDatabase;
-import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
 import java.time.format.DateTimeFormatter;
@@ -38,16 +39,20 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
     private LayoutInflater inflater;
     private ArrayList<Game> games;
     private GameFilter gameFilter;
-    private ArrayList<Game> filteredList;
+    private ArrayList<Game> filteredList, checkedGamesArrayList;
     private int layout;
+    private LinearLayout li, lLayout;
+
     private AppDatabase appDatabase;
     private Button verifyGameBtn;
     private AppViewModel appViewModel;
     private ImageView ifSchrodinger;
-    private TextView username, division, home, away, score1, score2, time, date, position1, position2, pointDifference;
+    private TextView username, division, home, away, score1, score2, time, date, position1, position2, pointDifference, odds;
     private ImageView up_arrow1, down_arrow1, up_arrow2, down_arrow2;
     private ArrayList<ClubStats> table, newTable;
-    private String maxDate;
+    private String maxDate, baseUrl;
+
+    private Bundle bundle;
     private ClubStats homePosition, awayPosition;
     private Game currentGame;
 
@@ -61,11 +66,12 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
     public void setGames(ArrayList<Game> games) {
         this.games = games;
     }
-    public PredictionAdapter(Activity activity, ArrayList<Game> games, int layout ) {
+    public PredictionAdapter(Activity activity, ArrayList<Game> games, int layout, String baseUrl ) {
         this.activity = activity;
         this.games = games;
         this.layout = layout;
         this.filteredList = games;
+        this.baseUrl = baseUrl;
         getFilter();
     }
     @Override
@@ -84,7 +90,8 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
     public View getView(int position, View convertView, ViewGroup parent) {
         final Context context = parent.getContext();
         appViewModel = new ViewModelProvider((ViewModelStoreOwner) context).get(AppViewModel.class);
-        appViewModel.init(context);
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(context, baseUrl);
 
         appDatabase = AppDatabase.getAppDb(context);
         currentGame = filteredList.get(position);
@@ -113,6 +120,8 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
         up_arrow2 = convertView.findViewById(R.id.up_arrow2);
         down_arrow2 = convertView.findViewById(R.id.down_arrow2);
         pointDifference = convertView.findViewById(R.id.pointdifference);
+        lLayout = convertView.findViewById(R.id.layout);
+        odds = convertView.findViewById(R.id.odds);
 
         position1.setVisibility(VISIBLE);
         position2.setVisibility(VISIBLE);
@@ -121,7 +130,7 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
         up_arrow2.setVisibility(VISIBLE);
         down_arrow2.setVisibility(VISIBLE);
 
-        table = appDatabase.getTable(currentGame.getLeagueId());
+        table = appDatabase.getTable(currentGame.getLeagueId(), currentGame.getSeason());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             DateTimeFormatter dtf = new DateTimeFormatterBuilder()
@@ -137,8 +146,23 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
                 homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getHome());
                 awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getAway());
 
-                position1.setText(String.valueOf(homePosition.getPosition()));
-                position2.setText(String.valueOf(awayPosition.getPosition()));
+
+
+                if(homePosition == null ){
+                    position1.setText(String.valueOf(0));
+                    pointDifference.setText(String.valueOf(0));
+
+                }else{
+                    position1.setText(String.valueOf(homePosition.getPosition()));
+                }
+
+                if(awayPosition == null ){
+                    position2.setText(String.valueOf(0));
+                    pointDifference.setText(String.valueOf(0));
+
+                }else{
+                    position2.setText(String.valueOf(awayPosition.getPosition()));
+                }
 
                 if(homePosition.getPosition() > awayPosition.getPosition()){
                     pointDifference.setText(String.valueOf(awayPosition.getPoints() - homePosition.getPoints()));
@@ -164,6 +188,22 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
             ifSchrodinger.setVisibility(View.GONE);
         }
 
+        if(currentGame.getChecked() == 1){
+            lLayout.setBackgroundColor(Color.parseColor("#34833C"));
+        }else{
+            lLayout.setBackgroundColor(0);
+        }
+
+//        checkedGamesArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(currentGame.getLeagueId(), currentGame.getSeason());
+//
+//        for (Game game:checkedGamesArrayList) {
+//            if (Objects.equals(currentGame.getUsername(), game.getUsername())){
+//                lLayout.setBackgroundColor(Color.parseColor("#34833C"));//green - game is  won
+//            }
+//        }
+
+
+
         if(layout == (R.layout.prediction_rows))
         {
             username.setText(currentGame.getUsername());
@@ -173,12 +213,17 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
             score1.setText(currentGame.getScore1());
             score2.setText(currentGame.getScore2());
             time.setText(currentGame.getTime());
-            date.setText(currentGame.getDate());
+            date.setText(String.valueOf(currentGame.getDate()));
 
             division.setVisibility(View.GONE);
 
+            odds.setText(currentGame.getOdds());
 
             username.setTextColor(Color.RED);
+
+
+
+
 
             verifyGameBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -195,7 +240,7 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
                         Game finalSelectedgame = selectedgame;
                         builder.setPositiveButton("Yes", (DialogInterface.OnClickListener) (dialog, which) -> {
                             finalSelectedgame.setSchrodinger(0);
-                            appViewModel.verifyGame(v, finalSelectedgame, finalSelectedgame.getId());
+                            appViewModel.updateSchrodinger(v, finalSelectedgame, finalSelectedgame.getId());
                         });
                         builder.setNegativeButton("No", (DialogInterface.OnClickListener) (dialog, which) -> {
                             dialog.cancel();
@@ -213,7 +258,7 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
                         Game finalSelectedgame = selectedgame;
                         builder.setPositiveButton("Yes", (DialogInterface.OnClickListener) (dialog, which) -> {
                             finalSelectedgame.setSchrodinger(1);
-                            appViewModel.verifyGame(v, finalSelectedgame, finalSelectedgame.getId());
+                            appViewModel.updateSchrodinger(v, finalSelectedgame, finalSelectedgame.getId());
                         });
                         builder.setNegativeButton("No", (DialogInterface.OnClickListener) (dialog, which) -> {
                             dialog.cancel();

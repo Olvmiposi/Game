@@ -11,7 +11,7 @@
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#344955"
+        card_view:cardBackgroundColor="#DA5353"
         card_view:cardCornerRadius="20dp"
         card_view:cardElevation="8dp">
 
@@ -39,7 +39,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="left"
-                android:background="#DA5353"
                 android:orientation="vertical">
 
                 <TextView
@@ -177,6 +176,13 @@
                     <TextView
                         android:id="@+id/time"
                         android:hint="14:00"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"/>
+                    <TextView
+                        android:id="@+id/fixtureId"
+                        android:hint="123"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:layout_weight="1"

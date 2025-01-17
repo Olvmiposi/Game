@@ -27,4 +27,7 @@ public interface InfoDAO {
 
     @Delete
     void delete(Info info);
+
+    @Query("DELETE FROM info")
+    void nukeTable();
 }

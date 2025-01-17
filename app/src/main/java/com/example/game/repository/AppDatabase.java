@@ -2,6 +2,7 @@ package com.example.game.repository;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Build;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Database;
@@ -25,6 +26,7 @@ import com.example.game.model.Schrodinger;
 import com.example.game.model.SearchString;
 import com.example.game.model.Usage;
 import com.example.game.model.User;
+import com.google.common.collect.ComparisonChain;
 
 import java.io.Serializable;
 import java.text.ParseException;
@@ -45,7 +47,7 @@ import java.util.stream.Collectors;
 
 @Database(entities = {
         User.class, Game.class, League.class, Usage.class, Info.class, SearchString.class,  Schrodinger.class, ClubStats.class},
-        version = 3, exportSchema = false)
+        version = 1, exportSchema = false)
 
 public abstract class AppDatabase extends RoomDatabase implements Serializable {
     private static final String DB_NAME = "app_db";
@@ -53,10 +55,18 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     private static final int NUMBER_OF_THREADS = 4;
     static final ExecutorService databaseWriteExecutor =
             Executors.newFixedThreadPool(NUMBER_OF_THREADS);
-    private LiveData<List<Game>> game;
-    private Game gamee;
-    private List<Game> game1, game2, filteredGame1, filteredGame2,filteredGameHome, filteredGameAway;
+    private LiveData<List<Game>> games;
+
+    private ClubStats clubStat;
+    private Game game;
+    private List<Game> game1, game2, game3, game4, filteredGame1, filteredGame2,filteredGameHome, filteredGameAway;
     private ArrayList<Game> gameArrayList;
+
+    private ArrayList<String> clubList;
+    private ArrayList<String> distinctHome ;
+    private ArrayList<String> distinctAway ;
+    private ArrayList<String> distinctClub ;
+    private ArrayList<Integer> leagueIdList;
     private ArrayList<League> leagueArrayList, leagues;
     private List<Integer> leagueId;
     private List<SearchString> searchStrings;
@@ -143,8 +153,12 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
 
                 schrodingers = (ArrayList<Schrodinger>) schrodingerDao().getSchrodingers();
                 for (Schrodinger schrodinger: schrodingers) {
-                    gamee = appDatabase.getGame(schrodinger.getId());
-                    gameArrayList.add(gamee);
+                    game = appDatabase.getGame(schrodinger.getId());
+                    if(game != null){
+                        game.setSchrodinger(1);
+                        updateGame(game);
+                        gameArrayList.add(game);
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -195,6 +209,9 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
             }
         }).start();
     }
+
+
+
 
     public ArrayList<SearchString> getSearchString() {
         Thread thread = new Thread(() -> {
@@ -254,10 +271,10 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }).start();
     }
 
-    public ArrayList<ClubStats> getTable(int id) {
+    public ArrayList<ClubStats> getTable(int id, int season) {
         Thread thread = new Thread(() -> {
             try {
-                standing = (ArrayList<ClubStats>) clubStatsDao().getTable(id);
+                standing = (ArrayList<ClubStats>) clubStatsDao().getTable(id, season);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -446,10 +463,11 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return gameArrayList;
     }
-    public LiveData<List<Game>> getGames() {
+
+    public List<String> getDistinctHomeClub( int  leagueId, int season) {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getGames();
+                clubList = (ArrayList<String>) gameDao().getDistinctHomeClub(leagueId, season);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -462,7 +480,101 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return clubList;
+    }
+    public List<String> getDistinctAwayClub(int  leagueId, int season) {
+        Thread thread = new Thread(() -> {
+            try {
+                clubList = (ArrayList<String>) gameDao().getDistinctAwayClub(leagueId, season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return clubList;
+    }
+
+//    public List<String> getDistinctClub() {
+//        Thread thread = new Thread(() -> {
+//            try {
+//                clubList = (ArrayList<String>) gameDao().getDistinctClub();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        });
+//
+//        thread.start();
+//
+//        try {
+//            thread.join();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        return clubList;
+//    }
+
+    public  ArrayList<Game> searchUsernames(String strings){
+
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().searchUsernames(strings);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gameArrayList;
+    }
+    public LiveData<List<Game>> getGames() {
+        Thread thread = new Thread(() -> {
+            try {
+                games = gameDao().getGames();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return games;
+    }
+
+    public LiveData<List<Game>> getGamesByDate() {
+        Thread thread = new Thread(() -> {
+            try {
+                games = gameDao().getGamesByDate();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return games;
     }
 
     public List<Game> getGamesLeagueId() {
@@ -482,6 +594,65 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         return game1;
 
     }
+    public ArrayList<Game> getGamesByLeagueIdAndDate(int id, String latestDate) {
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().getGamesByLeagueIdAndDate(id, latestDate);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gameArrayList;
+    }
+
+    public ArrayList<Game> getGamesByLeagueIdAndSeason(int id, int season) {
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().getGamesByLeagueIdAndSeason(id, season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gameArrayList;
+
+    }
+
+    public ArrayList<Game> getSchrodingerByLeagueIdAndSeason(int id, int season) {
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().getSchrodingerByLeagueIdAndSeason(id, season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gameArrayList;
+
+    }
+
 
     public ArrayList<Game> getGamesByLeagueId(int id) {
         Thread thread = new Thread(() -> {
@@ -505,7 +676,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     public LiveData<List<Game>> getPasswordsByLeagueId(int id) {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getPasswordsByLeagueId(id);
+                games = gameDao().getPasswordsByLeagueId(id);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -518,13 +689,13 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return games;
     }
 
     public LiveData<List<Game>> getGamesByFixtureId(int id) {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getGamesByFixtureId(id);
+                games = gameDao().getGamesByFixtureId(id);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -537,14 +708,14 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return games;
     }
 
 
     public LiveData<List<Game>> getSchrodingerGames() {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getSchrodingerGames();
+                games = gameDao().getSchrodingerGames();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -557,7 +728,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return games;
     }
 
     public List<Game> getSchrodingerGamesList(int LeagueId) {
@@ -579,14 +750,33 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         return game1;
     }
 
-    public List<Game> getSchrodingerGamesListByLeagueId(int LeagueId) {
+    public LiveData<List<Game>> getldSchrodingerGamesList(int LeagueId) {
+        Thread thread = new Thread(() -> {
+            try {
+                games = gameDao().getldSchrodingerGamesListByLeagueId(LeagueId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return games;
+    }
+
+    public List<Game> getSchrodingerGamesListByLeagueId(int LeagueId, int season) {
 
         ArrayList<Game> newGame = new ArrayList<>();
         Thread thread = new Thread(() -> {
             try {
                 gameArrayList = getSchrodingersGames();
                 for(Game game : gameArrayList){
-                    if (game.getLeagueId() == LeagueId){
+                    if (game.getLeagueId() == LeagueId && game.getSeason() == season){
                         newGame.add(game);
                     }
                 }
@@ -645,7 +835,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     public LiveData<List<Game>> getCheckedGamesByDate(String date, int leagueId) {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getCheckedGamesByDate(date, leagueId);
+                games = gameDao().getCheckedGamesByDate(date, leagueId);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -656,12 +846,29 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return games;
+    }
+
+    public LiveData<List<Game>> getSchrodingerGamesByDate(String date, int leageId) {
+        Thread thread = new Thread(() -> {
+            try {
+                games = gameDao().getSchrodingerGamesByDate(date, leageId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return games;
     }
     public LiveData<List<Game>> getTodayGame(String date) {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getAllGamesPlayingToday(date);
+                games = gameDao().getAllGamesPlayingToday(date);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -672,14 +879,31 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return games;
+
+    }
+    public ArrayList<Game> getTodayGames(String date) {
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().getAllGamePlayingToday(date);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gameArrayList;
 
     }
 
     public LiveData<List<Game>> getAllCheckedGames() {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getAllCheckedGames();
+                games = gameDao().getAllCheckedGames();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -690,7 +914,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return games;
     }
     public ArrayList<Game> getAllCheckedGamesList() {
         Thread thread = new Thread(() -> {
@@ -710,15 +934,50 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     }
 
     // All checked games by home and away
-    public ArrayList<Integer> getCheckedGamesByHomeAndAway(String home, String away) {
+    public ArrayList<Integer> getCheckedGamesByHomeAndAway(String home, String away, int season) {
         homeScore = new ArrayList<>();
         awayScore = new ArrayList<>();
         maxScore = new ArrayList<>();
 
         Thread thread = new Thread(() -> {
             try {
-                game1 = gameDao().getCheckedGamesByHome(home);
-                game2 = gameDao().getCheckedGamesByAway(away);
+                game1 = gameDao().getCheckedGamesByHome1(home);
+                game2 = gameDao().getCheckedGamesByAway1(away);
+
+                for (Game game : Objects.requireNonNull(game1)){
+                    homeScore.add(Integer.parseInt(game.getScore1()));
+                }
+
+                for (Game game : Objects.requireNonNull(game2)){
+                    awayScore.add(Integer.parseInt(game.getScore2()));
+                }
+                maxHome = Collections.max(homeScore);
+                maxAway = Collections.max(awayScore);
+
+                maxScore.add(0,maxHome);
+                maxScore.add(1,maxAway);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return maxScore;
+    }
+    public ArrayList<Integer> getCheckedGamesByHomeAwayAndSeason(String home, String away, int season) {
+        homeScore = new ArrayList<>();
+        awayScore = new ArrayList<>();
+        maxScore = new ArrayList<>();
+
+        Thread thread = new Thread(() -> {
+            try {
+                game1 = gameDao().getCheckedGamesByHomeSeason(home, season);
+                game2 = gameDao().getCheckedGamesByAwaySeason(away, season);
 
                 for (Game game : Objects.requireNonNull(game1)){
                     homeScore.add(Integer.parseInt(game.getScore1()));
@@ -746,7 +1005,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         return maxScore;
     }
 
-    public ArrayList<Integer> getCheckedGamesByHomeAndAwayLastFive(String home, String away) {
+    public ArrayList<Integer> getCheckedGamesByHomeAndAwayLastFive(String home, String away, int season) {
         homeScore = new ArrayList<>();
         awayScore = new ArrayList<>();
         maxScore = new ArrayList<>();
@@ -762,11 +1021,11 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
 
         // sort all games according to date and put them in arraylist called game1 and game2
 
-        game1.addAll(gameDao().getCheckedGamesByHome(home));
-        game1.addAll(gameDao().getCheckedGamesByAway(home));
+        game1.addAll(gameDao().getCheckedGamesByHome(home, season));
+        game1.addAll(gameDao().getCheckedGamesByAway(home, season));
 
-        game2.addAll(gameDao().getCheckedGamesByHome(away));
-        game2.addAll(gameDao().getCheckedGamesByAway(away));
+        game2.addAll(gameDao().getCheckedGamesByHome(away, season));
+        game2.addAll(gameDao().getCheckedGamesByAway(away, season));
 
         game1.size();
         game2.size();
@@ -836,7 +1095,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         return maxScore;
     }
 
-    public ArrayList<Integer> getCheckedGamesByHomeAndAwayLastFiveByHA(String home, String away) {
+    public ArrayList<Integer> getCheckedGamesByHomeAndAwayLastFiveByHA(String home, String away, int season) {
         homeScore = new ArrayList<>();
         awayScore = new ArrayList<>();
         maxScore = new ArrayList<>();
@@ -848,8 +1107,8 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         filteredGameAway = new ArrayList<>();
 
         // sort all games according to date and put them in arraylist called game1 and game2
-        game1 = gameDao().getCheckedGamesByHome(home);
-        game2 = gameDao().getCheckedGamesByAway(away);
+        game1 = gameDao().getCheckedGamesByHome(home, season);
+        game2 = gameDao().getCheckedGamesByAway(away, season);
 
         filteredGame1 = sort((ArrayList<Game>) game1);
         filteredGame2 = sort((ArrayList<Game>) game2);
@@ -906,6 +1165,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         return maxScore;
     }
 
+
     public  ArrayList<Game> sort(ArrayList<Game> games){
         game1 = new ArrayList<>();
         try {
@@ -914,8 +1174,8 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
                 @Override
                 public int compare(Game t1, Game t2) {
                     if (t1.getDate() != null) {
-                        String sDate1 = t1.getDate();
-                        String sDate2 = t2.getDate();
+                        String sDate1 = String.valueOf(t1.getDate());
+                        String sDate2 = String.valueOf(t2.getDate());
 
                         Date date1 = null;
                         Date date2 = null;
@@ -943,15 +1203,15 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
 
         return games;
     }
-    public ArrayList<Integer> getHomeAndAwayMinScore(String home, String away) {
+    public ArrayList<Integer> getHomeAndAwayMinScore(String home, String away, int season) {
         homeScore = new ArrayList<>();
         awayScore = new ArrayList<>();
         minScore = new ArrayList<>();
 
         Thread thread = new Thread(() -> {
             try {
-                game1 = gameDao().getCheckedGamesByHome(home);
-                game2 = gameDao().getCheckedGamesByAway(away);
+                game1 = gameDao().getCheckedGamesByHome(home, season);
+                game2 = gameDao().getCheckedGamesByAway(away, season);
 
                 for (Game game : Objects.requireNonNull(game1)){
                     homeScore.add(Integer.parseInt(game.getScore1()));
@@ -995,15 +1255,15 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
 
         return max.getKey();
     }
-    public ArrayList<Integer> getHomeAndAwayMostScore(String home, String away) {
+    public ArrayList<Integer> getHomeAndAwayMostScore(String home, String away, int season) {
         homeScore = new ArrayList<>();
         awayScore = new ArrayList<>();
         mostScore = new ArrayList<>();
 
         Thread thread = new Thread(() -> {
             try {
-                game1 = gameDao().getCheckedGamesByHome(home);
-                game2 = gameDao().getCheckedGamesByAway(away);
+                game1 = gameDao().getCheckedGamesByHome(home, season);
+                game2 = gameDao().getCheckedGamesByAway(away, season);
 
                 for (Game game : Objects.requireNonNull(game1)){
                     homeScore.add(Integer.parseInt(game.getScore1()));
@@ -1029,7 +1289,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return mostScore;
     }
-    public ArrayList<String> getHomeAndAwayMostScoreString(String home, String away) {
+    public ArrayList<String> getHomeAndAwayMostScoreString(String home, String away, int season) {
         homeScore = new ArrayList<>();
         awayScore = new ArrayList<>();
         mostScore = new ArrayList<>();
@@ -1037,16 +1297,65 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
 
         Thread thread = new Thread(() -> {
             try {
-                game1 = gameDao().getCheckedGamesByHome(home);
-                game2 = gameDao().getCheckedGamesByAway(away);
+                game1 = gameDao().getCheckedGamesByHome(home, season);
+                game3 = gameDao().getCheckedGamesByAway(home, season);
+
+                game2 = gameDao().getCheckedGamesByAway(away, season);
+                game4 = gameDao().getCheckedGamesByHome(away, season);
 
                 for (Game game : Objects.requireNonNull(game1)){
                     homeScore.add(Integer.parseInt(game.getScore1()));
+                }
+                for (Game game : Objects.requireNonNull(game3)){
+                    homeScore.add(Integer.parseInt(game.getScore2()));
                 }
 
                 for (Game game : Objects.requireNonNull(game2)){
                     awayScore.add(Integer.parseInt(game.getScore2()));
                 }
+                for (Game game : Objects.requireNonNull(game4)){
+                    awayScore.add(Integer.parseInt(game.getScore1()));
+                }
+
+                stringMostHome = String.valueOf(getStrings(homeScore));
+                stringMostAway = String.valueOf(getStrings(awayScore));
+
+                stringMostScore.add(0,stringMostHome);
+                stringMostScore.add(1,stringMostAway);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return stringMostScore;
+    }
+    public ArrayList<String> getHomeAndAwayMostScoreString2(String home, String away, int season) {
+        homeScore = new ArrayList<>();
+        awayScore = new ArrayList<>();
+        mostScore = new ArrayList<>();
+        stringMostScore =  new ArrayList<>();
+
+        Thread thread = new Thread(() -> {
+            try {
+                game1 = gameDao().getCheckedGamesByHome(home, season);
+
+                game2 = gameDao().getCheckedGamesByAway(away, season);
+
+                for (Game game : Objects.requireNonNull(game1)){
+                    homeScore.add(Integer.parseInt(game.getScore1()));
+                }
+
+
+                for (Game game : Objects.requireNonNull(game2)){
+                    awayScore.add(Integer.parseInt(game.getScore2()));
+                }
+
 
                 stringMostHome = String.valueOf(getStrings(homeScore));
                 stringMostAway = String.valueOf(getStrings(awayScore));
@@ -1078,11 +1387,6 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
             mostOccurred.add(String.valueOf(couterMap));
         }
 
-//        for(Integer tmp:set)
-//        {
-//
-//            mostOccurred.add(tmp +  " : " + Collections.frequency(list, tmp));
-//        }
         return mostOccurred;
 
     }
@@ -1124,10 +1428,11 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return gameArrayList;
     }
-    public LiveData<List<Game>> getAllCheckedGamesByLeagueId(int leagueId, int season) {
+
+    public ArrayList<Integer> getDistinctLeague() {
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getAllCheckedGamesByLeagueId(leagueId, season);
+                leagueIdList = (ArrayList<Integer>) gameDao().getDistinctLeague();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1138,7 +1443,73 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return leagueIdList;
+    }
+
+    public ArrayList<Integer> getDistinctLeagueBySeason(int season) {
+        Thread thread = new Thread(() -> {
+            try {
+                leagueIdList = (ArrayList<Integer>) gameDao().getDistinctLeagueBySeason(season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return leagueIdList;
+    }
+
+    public ArrayList<Game> getAllGamesBySeason(int season) {
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().getAllGamesBySeason(season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gameArrayList;
+    }
+    public ArrayList<Game> getAllSchrodingerBySeason(int season) {
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().getAllSchrodingerBySeason(season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gameArrayList;
+    }
+    public LiveData<List<Game>> getAllCheckedGamesByLeagueId(int leagueId, int season) {
+        Thread thread = new Thread(() -> {
+            try {
+                games = gameDao().getAllCheckedGamesByLeagueId(leagueId, season);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return games;
     }
     public Game getGame(final int id) {
         final Game[] finalGame = new Game[1];
@@ -1157,10 +1528,11 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return finalGame[0];
     }
-    public LiveData<List<Game>> getGamePossibilities(final int fixtureId) {
+    public Game getGameByUsernameId(final int id) {
+        final Game[] finalGame = new Game[1];
         Thread thread = new Thread(() -> {
             try {
-                game = gameDao().getGamePossibilities(fixtureId);
+                finalGame[0] = gameDao().getGameByUsernameId(id);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1171,7 +1543,23 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return game;
+        return finalGame[0];
+    }
+    public LiveData<List<Game>> getGamePossibilities(final int fixtureId) {
+        Thread thread = new Thread(() -> {
+            try {
+                games = gameDao().getGamePossibilities(fixtureId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return games;
     }
     public List<Game> getGamePossibilitiesList(final int fixtureId) {
         Thread thread = new Thread(() -> {
@@ -1257,10 +1645,10 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
             }
         }).start();
     }
-    public LiveData<List<League>> getLeagues() {
+    public List<League> getLeagues() {
         Thread thread = new Thread(() -> {
             try {
-                league = leagueDao().getLeagues();
+                leagueArrayList = (ArrayList<League>) leagueDao().getLeagues();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1271,7 +1659,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return league;
+        return leagueArrayList;
     }
     public List<League> getLeaguesById(int leagueId) {
         Thread thread = new Thread(() -> {
@@ -1435,5 +1823,182 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     }
 
 
+    public  void clearSomeTables(){
+        new Thread(() -> {
+            try {
+                searchStringDao().nukeTable();
+                infoDao().nukeTable();
+                //clubStatsDao().nukeTable();
+                usageDao().nukeTable();
+                gameDao().nukeTable();
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+
+
+
+    public void seedClubStats( int leagueId, int season) {
+        Thread thread = new Thread(() -> {
+            try {
+
+                SimpleDateFormat formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+                Date date = new Date();
+
+                distinctHome = (ArrayList<String>) getDistinctHomeClub(leagueId, season);
+
+                distinctAway = (ArrayList<String>) getDistinctAwayClub(leagueId, season);
+
+                ArrayList<String> clubArrayList = new ArrayList<>();
+
+                ArrayList<ClubStats> clubStatsArrayList = new ArrayList<>();
+
+
+                clubArrayList.addAll(distinctHome);
+                clubArrayList.addAll(distinctAway);
+
+
+                ArrayList<String> uniqueClubList = new ArrayList<>();
+
+                for (String club: clubArrayList) {
+                    if(!uniqueClubList.contains(club)){
+                        uniqueClubList.add(club);
+                    }
+                }
+
+
+                distinctHome.size();
+                distinctAway.size();
+                clubArrayList.size();
+                uniqueClubList.size();
+
+
+                for (String club: uniqueClubList) {
+
+                    ArrayList<Game> gameArrayList = new ArrayList<Game>();
+
+                    clubStat = new ClubStats();
+
+                    int position, point = 0, allPlayed = 0, win = 0, draw = 0, loose = 0, goalsFor = 0, goalsAgainst = 0, goalDifference = 0;
+
+                    gameArrayList.addAll( gameDao().getCheckedGamesByClubAndSeasonHome(club, leagueId, season));
+                    gameArrayList.addAll( gameDao().getCheckedGamesByClubAndSeasonAway(club, leagueId, season));
+
+
+                    for(Game game : gameArrayList){
+
+                        clubStat.setLeagueName(game.getDivision());
+
+                        // if club is home team and score 1 is greater than score 2 get points from home Score
+                        if(Objects.equals(club, game.getHome()) && Integer.parseInt(game.getScore1()) >  Integer.parseInt(game.getScore2())){
+                            point += 3;
+                            win += 1;
+                        }
+
+                        // if club is away team and score 2 is greater than score 1 get points from away Score
+                        if(Objects.equals(club, game.getAway()) && Integer.parseInt(game.getScore2()) >  Integer.parseInt(game.getScore1())){
+                            point += 3;
+                            win += 1;
+                        }
+
+                        // if club is home and both scores are the same
+                        if(Objects.equals(club, game.getHome()) && Integer.parseInt(game.getScore1()) ==  Integer.parseInt(game.getScore2())){
+                            point += 1;
+                            draw += 1;
+                        }
+                        // if club is away and both scores are the same
+                        if(Objects.equals(club, game.getAway()) && Integer.parseInt(game.getScore1()) ==  Integer.parseInt(game.getScore2())){
+                            point += 1;
+                            draw += 1;
+                        }
+
+                        // if club is home team and score 1 is less than score 2 game is a loose
+                        if(Objects.equals(club, game.getHome()) && Integer.parseInt(game.getScore1()) <  Integer.parseInt(game.getScore2())){
+                            loose += 1;
+                        }
+                        // if club is away team and score 2 is less than score 1 game is a loose
+                        if(Objects.equals(club, game.getAway()) && Integer.parseInt(game.getScore2()) <  Integer.parseInt(game.getScore1())){
+                            loose += 1;
+
+                        }
+
+                        if(Objects.equals(club, game.getHome())){
+                            goalsAgainst += Integer.parseInt(game.getScore2());
+                            goalsFor += Integer.parseInt(game.getScore1());
+
+                        }
+                        // if club is away team and score 2 is less than score 1 game is a loose
+                        if(Objects.equals(club, game.getAway())){
+                            goalsAgainst += Integer.parseInt(game.getScore1());
+                            goalsFor += Integer.parseInt(game.getScore2());
+
+                        }
+
+                    }
+                    clubStat.setPoints(point);
+                    clubStat.setAllPlayed(gameArrayList.size());
+                    clubStat.setDraw(draw);
+                    clubStat.setWin(win);
+                    clubStat.setLose(loose);
+                    clubStat.setGoalsFor(goalsFor);
+                    clubStat.setGoalsAgainst(goalsAgainst);
+                    clubStat.setGoalsDiff(goalsFor - goalsAgainst);
+
+
+
+                    clubStat.setSeason(season);
+                    clubStat.setLeagueId(String.valueOf(leagueId));
+                    clubStat.setName(club);
+
+
+
+                    //System.out.println(formatter.format(date));
+                    clubStat.setDateTime(formatter.format(date));
+
+
+                    clubStatsArrayList.add(clubStat);
+                    //addToTable(clubStat);
+
+                }
+
+                //sort by point
+
+                Collections.sort(clubStatsArrayList, new Comparator<ClubStats>() {
+                    @Override public int compare(ClubStats left, ClubStats right) {
+                        return ComparisonChain.start()
+                                .compare(right.getPoints(), left.getPoints())
+                                .compare(right.getGoalsDiff(), left.getGoalsDiff())
+                                .compare(right.getGoalsFor(), left.getGoalsFor() )
+                                .result();
+                    }
+                });
+
+
+                ArrayList<ClubStats> clubStatsWithPosition = new ArrayList<ClubStats>();
+                for (int i = 0; i < clubStatsArrayList.size(); i++) {
+                    ClubStats newClubStat = new ClubStats();
+                    newClubStat = clubStatsArrayList.get(i);
+                    newClubStat.setPosition(i+1);
+                    clubStatsWithPosition.add(newClubStat);
+                }
+
+                addAllToTable(clubStatsWithPosition);
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
 

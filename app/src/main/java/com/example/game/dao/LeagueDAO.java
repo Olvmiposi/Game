@@ -22,7 +22,7 @@ public interface LeagueDAO {
     @Update
     void update(League league);
     @Query("SELECT * from leagues ORDER By leagues.`end` Desc")
-    LiveData<List<League>> getLeagues();
+    List<League> getLeagues();
 
     @Query("SELECT * from leagues where leagueId = :leagueId ORDER By leagues.`end` Desc")
     List<League> getLeaguesById(int leagueId);

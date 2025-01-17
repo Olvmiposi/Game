@@ -53,11 +53,23 @@
                         android:layout_weight="1"
                         android:gravity="center"/>
 
-                    <TextView
-                        android:text=""
-                        android:layout_width="20dp"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"/>
+                    <LinearLayout
+                        android:id="@+id/layoutScore1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/score1"
+                            android:hint="0"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:textSize="20dp"
+                            android:gravity="center"/>
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -141,11 +153,27 @@
 
                     </LinearLayout>
 
-                    <TextView
-                        android:text=""
-                        android:layout_width="20dp"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"/>
+                    <LinearLayout
+                        android:id="@+id/layoutScore2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/score2"
+                            android:hint="0"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:textSize="20dp"
+                            android:gravity="center"/>
+
+
+
+
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/away"
@@ -163,6 +191,14 @@
                     <TextView
                         android:id="@+id/time"
                         android:hint="14:00"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"/>
+
+                    <TextView
+                        android:id="@+id/fixtureId"
+                        android:hint="123"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:layout_weight="1"

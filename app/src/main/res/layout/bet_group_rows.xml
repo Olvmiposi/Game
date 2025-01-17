@@ -74,6 +74,8 @@
                         android:id="@+id/teamListView"
                         android:layout_width="fill_parent"
                         android:layout_height="wrap_content"
+                        android:maxLines="1"
+                        android:ellipsize="end"
                         android:dividerHeight="1dp" />
 
                 </LinearLayout>

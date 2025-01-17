@@ -12,6 +12,7 @@
         android:id="@+id/tvYear"
         android:padding="10dp"
         android:hint="2023"
+        android:duplicateParentState="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:cornerRadius="60dp"

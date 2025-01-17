@@ -19,6 +19,8 @@ public class YearRecyclerViewAdapter extends RecyclerView.Adapter<YearRecyclerVi
     private List<Integer> mYears;
     private LayoutInflater mInflater;
     private int selected_position;
+    private static int selectedItem = -1;
+
     private ItemClickListener mClickListener;
 
     // data is passed into the constructor
@@ -40,9 +42,11 @@ public class YearRecyclerViewAdapter extends RecyclerView.Adapter<YearRecyclerVi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         int year = mYears.get(position);
         holder.myTextView.setText(String.valueOf(year));
-
+        if(selectedItem == position)
+            holder.itemView.setSelected(true);
         // Here I am just highlighting the background
         holder.itemView.setBackgroundColor(selected_position == position ? Color.parseColor("#34833C") : Color.TRANSPARENT);
+
     }
 
     // total number of rows
@@ -54,6 +58,14 @@ public class YearRecyclerViewAdapter extends RecyclerView.Adapter<YearRecyclerVi
     public int getItem(int id) {
         return mYears.get(id);
     }
+    public int getSelectedItem() {
+        return selectedItem;
+    }
+    public void setSelectedItem(int position)
+    {
+        selectedItem = position;
+    }
+
 
     public int getSelected_position() {
         return selected_position;

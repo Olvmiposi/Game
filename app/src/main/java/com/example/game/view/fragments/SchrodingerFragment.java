@@ -1,14 +1,10 @@
 package com.example.game.view.fragments;
 
-import static android.widget.AbsListView.OnScrollListener.SCROLL_STATE_IDLE;
-
 import android.app.AlertDialog;
 import android.app.SearchManager;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.provider.SearchRecentSuggestions;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -16,6 +12,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
@@ -31,7 +28,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.game.R;
-import com.example.game.helpers.MySuggestionProvider;
 import com.example.game.model.Game;
 import com.example.game.model.SearchString;
 import com.example.game.repository.AppDatabase;
@@ -55,14 +51,14 @@ import java.util.Objects;
 public class SchrodingerFragment extends Fragment implements IOnBackPressed, AbsListView.OnScrollListener {
     private SchrodingerViewModel schrodingerViewModel;
     private AppViewModel appViewModel;
-    private SchrodingerAdapter adapter = null;
+    private SchrodingerAdapter adapter;
     private ListView schrodinger_ListView, recentSearch;
     private AppDatabase appDatabase;
     private SearchString searchString;
     private static final String LIST_STATE = "listState";
     int currentFirstVisibleItem, currentVisibleItemCount, currentTotalItemCount, currentScrollState;
     private Parcelable state = null;
-    private int lastViewedPosition, topOffset, leagueId;
+    private int lastViewedPosition, topOffset, leagueId, season, isInvinsible;
     private SearchView searchView;
     private Menu menu;
     private MenuItem searchMenuItem;
@@ -75,9 +71,10 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
     private SwipeRefreshLayout mySwipeRefreshLayout;
     private AlertDialog alertDialog;
     private AlertDialog.Builder builder;
+    private Button showMore;
     private int layout;
     private SearchAdapter searchAdapter;
-    private String currentDateTime;
+    private String currentDateTime, latestDate, baseUrl;
 
     public static SchrodingerFragment newInstance() {
         return new SchrodingerFragment();
@@ -105,17 +102,22 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        bundle = getArguments();
+        baseUrl = bundle.getString("baseUrl");
         schrodingerViewModel = new ViewModelProvider(this).get(SchrodingerViewModel.class);
-        schrodingerViewModel.init(getContext());
+        schrodingerViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
 
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
 
         schrodinger_ListView  = requireView().findViewById(R.id.schrodinger_ListView);
 
         recentSearch = requireView().findViewById(R.id.recentSearch);
         progressBar = requireView().findViewById(R.id.progressBar);
+        showMore = requireView().findViewById(R.id.showMore);
 
         progressBar.setVisibility(View.GONE);
         recentSearch.setVisibility(View.GONE);
@@ -129,7 +131,7 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
 
         state = savedInstanceState;
 
-        bundle = getArguments();
+
 
         searchString = new SearchString();
         strings = new ArrayList<>();
@@ -138,12 +140,25 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
         SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
         currentDateTime = dateFormat.format(currentDate);
 
-        myUpdateOperation(savedInstanceState);
-
-
-        handleSearch(getActivity().getIntent());
-
         leagueId = bundle.getInt("leagueId", 0);
+        season = bundle.getInt("season", 0);
+        isInvinsible = bundle.getInt("isInvinsible", 0);
+        latestDate =  bundle.getString("latestDate");
+
+
+        getTodaySchrodingerGames();
+        showMore.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                myUpdateOperation();
+            }
+        });
+
+
+
+        //handleSearch(getActivity().getIntent());
+
+
 
         schrodinger_ListView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
@@ -180,6 +195,7 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
         this.currentFirstVisibleItem = firstVisibleItem;
         this.currentVisibleItemCount = visibleItemCount;
         this.currentTotalItemCount = totalItemCount;
+
     }
 
     public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -195,29 +211,12 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
         }
     }
 
-    public void handleSearch( Intent intent)
-    {
-        if (Intent.ACTION_SEARCH.equalsIgnoreCase(intent.getAction())) {
-            String query = intent.getStringExtra(SearchManager.QUERY);
-
-            SearchRecentSuggestions searchRecentSuggestions=new SearchRecentSuggestions(getContext(),
-                    MySuggestionProvider.AUTHORITY,MySuggestionProvider.MODE);
-
-            searchRecentSuggestions.saveRecentQuery(query,null);
-        }
-    }
-
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = requireActivity().getMenuInflater();
         inflater.inflate(R.menu.options_menu, menu);
         super.onCreateOptionsMenu(menu,inflater);
         mOptionsMenu = menu;
         this.menu = menu;
-
-        schrodingerViewModel = new ViewModelProvider(this).get(SchrodingerViewModel.class);
-        schrodingerViewModel.init(getContext());
-        appDatabase = AppDatabase.getAppDb(getContext());
-        schrodinger_ListView  = getView().findViewById(R.id.schrodinger_ListView);
 
         SearchManager searchManager = (SearchManager) requireActivity().getSystemService(Context.SEARCH_SERVICE);
         searchMenuItem = menu.findItem(R.id.search);
@@ -226,22 +225,22 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
         searchView.setIconifiedByDefault(false);
         searchView.setQueryHint("username or club");
 
-
-        int isInvinsible = bundle.getInt("isInvinsible", 0);
-
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 searchString.setUsername(query);
                 searchString.setDate(currentDateTime);
-                schrodingerViewModel.searchSchrodingerOnClick(query);
                 appDatabase.addSearchString(searchString);
 
                 return false;
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                }catch (NullPointerException e){
+
+                }
                 return false;
             }
         });
@@ -250,27 +249,30 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
             @Override
             public boolean onMenuItemActionExpand(MenuItem item) {
                 recentSearch.setVisibility(View.VISIBLE);
-                searchAdapter = new SearchAdapter(getActivity(), strings, mOptionsMenu);
+                searchAdapter = new SearchAdapter(getActivity(), strings, mOptionsMenu, baseUrl);
                 recentSearch.setAdapter(searchAdapter);
-                if(state != null) {
-                    schrodinger_ListView.onRestoreInstanceState(state);
-                }
                 recentSearch.setClickable(true);
                 searchAdapter.setStrings(strings);
-                searchAdapter.notifyDataSetChanged();
+                //searchAdapter.notifyDataSetChanged();
 
                 return true; // KEEP IT TO TRUE OR IT DOESN'T OPEN !!
             }
             @Override
             public boolean onMenuItemActionCollapse(MenuItem item) {
                 recentSearch.setVisibility(View.GONE);
-                myUpdateOperation(new Bundle());
-                if(state != null) {
-                    schrodinger_ListView.onRestoreInstanceState(state);
-                }
+                int isInvinsible = bundle.getInt("isInvinsible", 0);
+                leagueId = bundle.getInt("leagueId", 0);
+                myList = (ArrayList<Game>) appDatabase.getSchrodingerGamesList(leagueId);
+                adapter = new SchrodingerAdapter((AppCompatActivity) getActivity(), (ArrayList<Game>) myList, R.layout.schrodinger_activity_rows, isInvinsible, baseUrl);
+
+                schrodinger_ListView.setAdapter(adapter);
+                adapter.setGames((ArrayList<Game>) myList);
+                onCompletion();
                 return true; // OR FALSE IF YOU DIDN'T WANT IT TO CLOSE!
             }
         });
+
+
 
         return true;
     }
@@ -287,19 +289,24 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
                 searchView.setIconifiedByDefault(false);
                 searchView.setQueryHint("username or club");
 
+                int isInvinsible = bundle.getInt("isInvinsible", 0);
+
                 searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                     @Override
                     public boolean onQueryTextSubmit(String query) {
                         searchString.setUsername(query);
                         searchString.setDate(currentDateTime);
-                        schrodingerViewModel.searchSchrodingerOnClick(query);
                         appDatabase.addSearchString(searchString);
 
                         return false;
                     }
                     @Override
                     public boolean onQueryTextChange(String newText) {
-                        adapter.getFilter().filter(newText);
+                        try {
+                            adapter.getFilter().filter(newText);
+                        }catch (NullPointerException e){
+
+                        }
                         return false;
                     }
                 });
@@ -308,21 +315,27 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
                     @Override
                     public boolean onMenuItemActionExpand(MenuItem item) {
                         recentSearch.setVisibility(View.VISIBLE);
-                        searchAdapter = new SearchAdapter(getActivity(), strings, mOptionsMenu);
+                        searchAdapter = new SearchAdapter(getActivity(), strings, mOptionsMenu, baseUrl);
                         recentSearch.setAdapter(searchAdapter);
                         recentSearch.setClickable(true);
                         searchAdapter.setStrings(strings);
-                        searchAdapter.notifyDataSetChanged();
+                        //searchAdapter.notifyDataSetChanged();
 
                         return true; // KEEP IT TO TRUE OR IT DOESN'T OPEN !!
                     }
                     @Override
                     public boolean onMenuItemActionCollapse(MenuItem item) {
                         recentSearch.setVisibility(View.GONE);
-                        myUpdateOperation(new Bundle());
-                        if(state != null) {
-                            schrodinger_ListView.onRestoreInstanceState(state);
-                        }
+
+                        int isInvinsible = bundle.getInt("isInvinsible", 0);
+                        leagueId = bundle.getInt("leagueId", 0);
+                        myList = (ArrayList<Game>) appDatabase.getSchrodingerGamesList(leagueId);
+                                        adapter = new SchrodingerAdapter((AppCompatActivity) getActivity(), (ArrayList<Game>) myList, R.layout.schrodinger_activity_rows, isInvinsible, baseUrl);
+
+                        schrodinger_ListView.setAdapter(adapter);
+                        adapter.setGames((ArrayList<Game>) myList);
+                        onCompletion();
+
                         return true; // OR FALSE IF YOU DIDN'T WANT IT TO CLOSE!
                     }
                 });
@@ -353,26 +366,50 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
             public boolean onQueryTextSubmit(String query) {
                 searchString.setUsername(query);
                 searchString.setDate(currentDateTime);
-                schrodingerViewModel.searchSchrodingerOnClick(query);
                 appDatabase.addSearchString(searchString);
 
                 return false;
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                }catch (NullPointerException e){
+
+                }
                 return false;
             }
         });
 
-    }
+        searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+            @Override
+            public boolean onMenuItemActionExpand(MenuItem item) {
+                recentSearch.setVisibility(View.VISIBLE);
+                searchAdapter = new SearchAdapter(getActivity(), strings, mOptionsMenu, baseUrl);
+                recentSearch.setAdapter(searchAdapter);
+                recentSearch.setClickable(true);
+                searchAdapter.setStrings(strings);
+                //searchAdapter.notifyDataSetChanged();
 
+                return true; // KEEP IT TO TRUE OR IT DOESN'T OPEN !!
+            }
+            @Override
+            public boolean onMenuItemActionCollapse(MenuItem item) {
+                recentSearch.setVisibility(View.GONE);
 
+                int isInvinsible = bundle.getInt("isInvinsible", 0);
+                leagueId = bundle.getInt("leagueId", 0);
+                myList = (ArrayList<Game>) appDatabase.getSchrodingerGamesList(leagueId);
+                adapter = new SchrodingerAdapter((AppCompatActivity) getActivity(), (ArrayList<Game>) myList, R.layout.schrodinger_activity_rows, isInvinsible, baseUrl);
 
-    private void updateOptionsMenu() {
-        if (mOptionsMenu != null) {
-            onPrepareOptionsMenu(mOptionsMenu);
-        }
+                schrodinger_ListView.setAdapter(adapter);
+                adapter.setGames((ArrayList<Game>) myList);
+                onCompletion();
+
+                return true; // OR FALSE IF YOU DIDN'T WANT IT TO CLOSE!
+            }
+        });
+
     }
 
     public static List<Game> moveNullsToEnd(final List<Game> games) {
@@ -389,61 +426,67 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
         }
         newGames.addAll(nullGames);
 
-//        for (int i = 0, remaining = games.size() - newGames.size(); i < remaining; i++) {
-//            newGames.add(games.get(remaining));
-//        }
-
         return newGames;
     }
 
-    public void myUpdateOperation(Bundle savedInstanceState){
-        int isInvinsible = bundle.getInt("isInvinsible", 0);
-        leagueId = bundle.getInt("leagueId", 0);
+    public void getTodaySchrodingerGames(){
+        Date currentDate = new Date();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
+        String currentDateTime = dateFormat.format(currentDate);
 
-        state = null;
-        //state = schrodinger_ListView.onSaveInstanceState();
-
-        //if using schrodinger table
-        //myList = (ArrayList<Game>) appDatabase.getSchrodingerGamesListByLeagueId(leagueId);
-
-
-        myList = (ArrayList<Game>) appDatabase.getSchrodingerGamesList(leagueId);
-
-
-        adapter = new SchrodingerAdapter(getActivity(), myList, R.layout.schrodinger_activity_rows, isInvinsible);
-        schrodinger_ListView.setAdapter(adapter);
-        // Restore previous state (including selected item index and scroll position)
-        if(state != null) {
-            schrodinger_ListView.onRestoreInstanceState(state);
-        }
-        adapter.setGames((ArrayList<Game>) myList);
-        //adapter.notifyDataSetChanged();
-        onCompletion();
-
-
-        schrodingerViewModel.getSearchSchrodingerResponse().observe(getViewLifecycleOwner(), games -> {
-            if(games != null){
-                newGames = (ArrayList<Game>)moveNullsToEnd(games);
-                adapter = new SchrodingerAdapter(getActivity(), newGames , R.layout.schrodinger_rows, isInvinsible);
+        appDatabase.getSchrodingerGamesByDate(currentDateTime, leagueId).observe(getViewLifecycleOwner() , games -> {
+            if (!games.isEmpty()) {
+                adapter = new SchrodingerAdapter(getActivity(), (ArrayList<Game>) games, R.layout.schrodinger_activity_rows, isInvinsible,baseUrl);
                 schrodinger_ListView.setAdapter(adapter);
-                // Restore previous state (including selected item index and scroll position)
-
                 if(state != null) {
                     schrodinger_ListView.onRestoreInstanceState(state);
-                    //onRestoreInstanceState(bundle);
                 }
-                adapter.setGames(newGames);
-                //adapter.notifyDataSetChanged();
-            }else{
-                schrodinger_ListView.setAdapter(null);
-                if(state != null) {
-                    schrodinger_ListView.onRestoreInstanceState(state);
-                    //onRestoreInstanceState(bundle);
-                }
+                adapter.setGames((ArrayList<Game>) games);
+                adapter.notifyDataSetChanged();
+                onCompletion();
+            }else {
+                appDatabase.getSchrodingerGamesByDate(latestDate, leagueId).observe(getViewLifecycleOwner() , games1 -> {
+                    if (games1 != null) {
+                        adapter = new SchrodingerAdapter(getActivity(), (ArrayList<Game>) games1, R.layout.schrodinger_activity_rows, isInvinsible,baseUrl);
+                        schrodinger_ListView.setAdapter(adapter);
+                        if(state != null) {
+                            schrodinger_ListView.onRestoreInstanceState(state);
+                        }
+                        adapter.setGames((ArrayList<Game>) games1);
+                        adapter.notifyDataSetChanged();
+                        onCompletion();
+                    }else{
+                        schrodinger_ListView.setAdapter(null);
+                    }
 
+                });
+            }
+
+        });
+    }
+
+    public void myUpdateOperation(){
+        appDatabase.getldSchrodingerGamesList(leagueId).observe(getViewLifecycleOwner(), new Observer<List<Game>>() {
+            @Override
+            public void onChanged(List<Game> games) {
+                if(games != null){
+
+                    adapter = new SchrodingerAdapter(getActivity(), (ArrayList<Game>) games, R.layout.schrodinger_activity_rows, isInvinsible, baseUrl);
+                    schrodinger_ListView.setAdapter(adapter);
+                    adapter.notifyDataSetChanged();
+                    if(state != null) {
+                        schrodinger_ListView.onRestoreInstanceState(state);
+                    }
+                    adapter.setGames((ArrayList<Game>) games);
+                    onCompletion();
+                }else {
+                    schrodinger_ListView.setAdapter(null);
+                    if(state != null) {
+                        schrodinger_ListView.onRestoreInstanceState(state);
+                    }
+                }
             }
         });
-
 
 
     }
@@ -455,8 +498,6 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
     @Override
     public void onStart() {
         super.onStart();
-        appViewModel.getSchrodingerGames();
-        adapter.notifyDataSetChanged();
         ActiveActivitiesTracker.activityStarted(this.getContext());
     }
     @Override
@@ -464,39 +505,21 @@ public class SchrodingerFragment extends Fragment implements IOnBackPressed, Abs
         super.onStop();
         ActiveActivitiesTracker.activityStopped();
     }
-    //@Override
-    protected void onRestoreInstanceState(Bundle Bstate) {
-        //super.onRestoreInstanceState(Bstate);
-        state = Bstate.getParcelable(LIST_STATE);
-    }
     @Override
     public void onSaveInstanceState(Bundle Bstate) {
-        super.onSaveInstanceState(Bstate);
         state = schrodinger_ListView.onSaveInstanceState();
         Bstate.putParcelable(LIST_STATE, state);
+        super.onSaveInstanceState(Bstate);
     }
 
     @Override
     public void onResume(){
-        onSaveInstanceState(new Bundle());
         super.onResume();
-    }
-
-    //@Override
-    public void onRestart() {
-        adapter.notifyDataSetChanged();
-        //super.onRestart();
-
     }
 
     @Override
     public void onBackPressed() {
-        appViewModel.getSchrodingerGames();
-        adapter.notifyDataSetChanged();
-//        //getActivity().getSupportFragmentManager().popBackStack();
-//        appViewModel.backstackFragment(getView());
-//        Toast.makeText(getContext(),"SchrodingerFragment back button pressed",Toast.LENGTH_LONG).show();
-//        return false;
+
     }
 
 }

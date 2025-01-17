@@ -53,6 +53,20 @@
                 android:layout_weight="1"
                 android:cacheColorHint="#00000000" />
 
+            <Button
+                android:id="@+id/showMore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:backgroundTint="#DA5353"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:text="Load More..."
+                android:textColor="@color/black"
+                android:textStyle="bold"
+                android:textSize="15sp" />
+
+
         </LinearLayout>
 
     </RelativeLayout>

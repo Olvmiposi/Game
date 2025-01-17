@@ -29,4 +29,7 @@ public interface SearchStringDAO {
     SearchString getSearchStringByUsername(String username);
     @Delete
     void delete(SearchString searchString);
+
+    @Query("DELETE FROM strings")
+    void nukeTable();
 }

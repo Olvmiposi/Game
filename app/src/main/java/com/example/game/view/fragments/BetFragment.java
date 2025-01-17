@@ -1,46 +1,36 @@
 package com.example.game.view.fragments;
 
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.SearchView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.game.R;
 import com.example.game.adapter.BetAdapter;
-import com.example.game.adapter.ListAdapter;
 import com.example.game.model.Bet;
 import com.example.game.model.BetResponse;
-import com.example.game.model.Game;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
 import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
-import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 public class BetFragment extends DialogFragment implements IOnBackPressed {
     private AppViewModel appViewModel;
@@ -50,34 +40,40 @@ public class BetFragment extends DialogFragment implements IOnBackPressed {
     private AppDatabase appDatabase;
 
     private Button generateRB;
-    private EditText no_games, dateEditText;
+    private EditText no_games, dateEditText, size;
     private Bet bet;
     private ProgressBar progressBar;
+    private Bundle bundle;
+    private String baseUrl;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         setHasOptionsMenu(true);
+
         return inflater.inflate(R.layout.bet_activity, container, false);
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
+        bundle = getArguments();
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
-        mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
-        bets_listView  = getView().findViewById(R.id.bets_listView);
+        mySwipeRefreshLayout = requireView().findViewById(R.id.swiperefresh);
+        bets_listView  = requireView().findViewById(R.id.bets_listView);
 
-        progressBar = getView().findViewById(R.id.progressBar);
+        progressBar = requireView().findViewById(R.id.progressBar);
         progressBar.setVisibility(View.GONE);
 
-        no_games = getView().findViewById(R.id.no_games);
-        dateEditText = getView().findViewById(R.id.date);
-        generateRB = getView().findViewById(R.id.generateRB);
-        ((MainActivity) getActivity()).disableSwipe();
+        no_games = requireView().findViewById(R.id.no_games);
+        dateEditText = requireView().findViewById(R.id.date);
+        size = requireView().findViewById(R.id.size);
+        generateRB = requireView().findViewById(R.id.generateRB);
+        ((MainActivity) requireActivity()).disableSwipe();
         ((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
         mySwipeRefreshLayout.setOnRefreshListener(() -> {
             onCompletion();
@@ -149,10 +145,11 @@ public class BetFragment extends DialogFragment implements IOnBackPressed {
                 if(arrayLists == null){
                     bets_listView.setAdapter(null);
                 }else {
-                    adapter = new BetAdapter((MainActivity)getActivity(), (ArrayList<BetResponse>)  arrayLists, R.layout.bet_group_rows);
+                    adapter = new BetAdapter((MainActivity)getActivity(), (ArrayList<BetResponse>)  arrayLists, R.layout.bet_group_rows, baseUrl);
                     bets_listView.setAdapter(adapter);
                     adapter.setGames((ArrayList<BetResponse>) arrayLists);
                     adapter.notifyDataSetChanged();
+                    size.setText(String.valueOf(arrayLists.size()));
                     onCompletion();
                 }
             }

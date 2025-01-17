@@ -7,6 +7,8 @@ import com.example.game.model.ClubStats;
 import com.example.game.model.Game;
 import com.example.game.model.Info;
 import com.example.game.model.League;
+import com.example.game.model.LiveUpdate;
+import com.example.game.model.LiveUpdateResponse;
 import com.example.game.model.Schrodinger;
 import com.example.game.model.Token;
 import com.example.game.model.Usage;
@@ -45,17 +47,29 @@ public interface ApiRequest   {
     Call<ArrayList<BetResponse>> getPairs(@Body Bet bet );
     @GET("users/search")
     Call<ArrayList<Game>> searchGame(@Query("username") String query );
-    @GET("users/game")
-    Call<ArrayList<Game>> getGames();
+
+    @POST("users/updateCheckedGames")
+    Call<ArrayList<Game>> updateCheckedGames(@Body League league);
+
+    @POST("users/getLiveUpdate")
+    Call<ArrayList<LiveUpdateResponse>> getLiveUpdate(@Body LiveUpdate liveUpdate);
+
+    //@Streaming
+    @POST("users/game")
+    Call<ArrayList<Game>> getGames(@Body League league);
     @PUT("users/updategame/{id}")
     Call<Game> verifyGame(@Path("id") int gameId, @Body Game game);
+    @PUT("users/updateSchrodinger/{id}")
+    Call<Game> updateSchrodinger(@Path("id") int gameId, @Body Game game);
+
     @GET("users/getTodayGame")
     Call<ArrayList<Game>> getTodayGame();
     @GET("users/getCheckedGames")
     Call<ArrayList<Game>> getCheckedGames();
     @GET("users/searchSchrodinger")
     Call<ArrayList<Game>> searchSchrodinger(@Query("username") String query );
-
+    @GET("users/getSchrodingers")
+    Call<ArrayList<Schrodinger>> getSchrodingers();
     @GET("users/getSchrodingerGames")
     Call<ArrayList<Game>> getSchrodingerGames();
 

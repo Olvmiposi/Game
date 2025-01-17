@@ -19,21 +19,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.game.R;
 import com.example.game.adapter.PredictionAdapter;
-import com.example.game.adapter.SearchAdapter;
 import com.example.game.model.Game;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
-import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
 import java.util.ArrayList;
-import java.util.Objects;
+import java.util.Arrays;
+import java.util.List;
 
 public class PredictionsFragment extends Fragment implements IOnBackPressed {
     private AppViewModel appViewModel;
@@ -43,7 +41,8 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
     private SearchView searchView;
     private MenuItem searchMenuItem;
     private Bundle bundle;
-    private  Game game;
+    private Game game;
+    private String baseUrl;
     private ArrayList<Integer> homeScore, awayScore, maxScore, minScore, mostOccurScore;
     private ArrayList<String> stringMostOccurScore;
     private ArrayList<Game>  homeGame, awayGame;
@@ -74,8 +73,11 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        bundle = getArguments();
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
         verifyGame_ListView  = getView().findViewById(R.id.prediction_ListView);
         myPrediction_ListView  = getView().findViewById(R.id.myPrediction_ListView);
@@ -85,7 +87,6 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
         pageTitle = getView().findViewById(R.id.pageTitle);
         //((MainActivity) requireActivity()).disableSwipe();
         //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
-        bundle = getArguments();
 
         game = new Game();
         game = (Game) bundle.getSerializable("game");
@@ -107,7 +108,7 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                 theGame = games.get(0);
                 maxScore = new ArrayList<>();
                 ArrayList<Game> myPredictions = new ArrayList<>();
-                maxScore = appDatabase.getCheckedGamesByHomeAndAway(theGame.getHome(), theGame.getAway());
+                maxScore = appDatabase.getCheckedGamesByHomeAndAway(theGame.getHome(), theGame.getAway(), theGame.getSeason());
 
                 try{
                     maxHomeEditText.setText(String.valueOf(maxScore.get(0)));
@@ -116,7 +117,9 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                     int home = maxScore.get(0);
                     int away = maxScore.get(1);
 
-                    adapter = new PredictionAdapter(getActivity(), (ArrayList<Game>) games, R.layout.prediction_rows);
+                    ArrayList<Game> autoPrediction = (ArrayList<Game>) moveScoresToBeginning(games);
+
+                    adapter = new PredictionAdapter(getActivity(), (ArrayList<Game>) autoPrediction, R.layout.prediction_rows, baseUrl);
 
                     for (int i = 0; i < games.size(); i++) {
                         boolean gameCheck = Integer.parseInt(adapter.getGames().get(i).getScore1()) <= home && Integer.parseInt(adapter.getGames().get(i).getScore2()) <= away;
@@ -128,13 +131,14 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                     myPredictions.size();
                     sizeEditText.setText(String.valueOf(myPredictions.size()));
 
-                    filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows);
+                    filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows, baseUrl);
+
 
                     myPrediction_ListView.setAdapter(filteredAdapter);
-                    filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
+                    filteredAdapter.setGames((ArrayList<Game>) myPredictions);
 
                     verifyGame_ListView.setAdapter(adapter);
-                    adapter.setGames((ArrayList<Game>) adapter.getGames());
+                    adapter.setGames((ArrayList<Game>) autoPrediction);
 
 
 
@@ -149,6 +153,61 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
 
         });
 
+    }
+
+    public static List<Game> moveScoresToBeginning(final List<Game> games) {
+        List<Integer> scores = Arrays.asList((0), (1), (2));
+
+        ArrayList<List<Integer>> group = new ArrayList<List<Integer>>();
+        group.add(Arrays.asList(0,0));
+        group.add(Arrays.asList(0,1));
+        group.add(Arrays.asList(1,0));
+        group.add(Arrays.asList(1,1));
+        group.add(Arrays.asList(2,0));
+
+        group.add(Arrays.asList(0,2));
+        group.add(Arrays.asList(2,1));
+        group.add(Arrays.asList(2,2));
+        group.add(Arrays.asList(1,2));
+        group.add(Arrays.asList(3,0));
+
+
+        group.add(Arrays.asList(0,3));
+        group.add(Arrays.asList(3,1));
+        group.add(Arrays.asList(1,3));
+        group.add(Arrays.asList(2,3));
+        group.add(Arrays.asList(3,2));
+
+        group.add(Arrays.asList(3,3));
+        group.add(Arrays.asList(0,4));
+        group.add(Arrays.asList(4,0));
+        group.add(Arrays.asList(4,1));
+        group.add(Arrays.asList(1,4));
+
+        group.add(Arrays.asList(4,2));
+        group.add(Arrays.asList(2,4));
+        group.add(Arrays.asList(4,3));
+        group.add(Arrays.asList(3,4));
+        group.add(Arrays.asList(4,4));
+
+
+
+        final List<Game> newGames = new ArrayList<Game>();
+        final List<Game> otherGames = new ArrayList<Game>();
+
+        for (Game game : games) {
+            for (List<Integer> nested : group) {
+                if (Integer.parseInt(game.score1)  == nested.get(0) && Integer.parseInt(game.score2)  == nested.get(1)){
+                    newGames.add(game);
+                }else{
+                    otherGames.add(game);
+                }
+
+            }
+        }
+        newGames.addAll(otherGames);
+
+        return newGames;
     }
 
 
@@ -180,7 +239,11 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                }catch (NullPointerException e){
+
+                }
                 return false;
             }
         });
@@ -216,7 +279,7 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                         theGame = games.get(0);
                         maxScore = new ArrayList<>();
                         ArrayList<Game> myPredictions = new ArrayList<>();
-                        maxScore = appDatabase.getCheckedGamesByHomeAndAway(theGame.getHome(), theGame.getAway());
+                        maxScore = appDatabase.getCheckedGamesByHomeAndAway(theGame.getHome(), theGame.getAway(), theGame.getSeason());
 
                         try{
                             maxHomeEditText.setText(String.valueOf(maxScore.get(0)));
@@ -234,7 +297,8 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
 
                             myPredictions.size();
 
-                            filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows);
+                            filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows, baseUrl);
+
 
                             myPrediction_ListView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
@@ -259,7 +323,7 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                         theGame = games.get(0);
                         minScore = new ArrayList<>();
                         ArrayList<Game> myPredictions = new ArrayList<>();
-                        minScore = appDatabase.getHomeAndAwayMinScore(theGame.getHome(), theGame.getAway());
+                        minScore = appDatabase.getHomeAndAwayMinScore(theGame.getHome(), theGame.getAway(), theGame.getSeason());
                         try{
                             maxHomeEditText.setText(String.valueOf(minScore.get(0)));
                             maxAwayEditText.setText(String.valueOf(minScore.get(1)));
@@ -276,7 +340,8 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
 
                             myPredictions.size();
 
-                            filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows);
+                            filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows, baseUrl);
+
 
                             myPrediction_ListView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
@@ -295,7 +360,7 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
 
 
                         stringMostOccurScore = new ArrayList<>();
-                        stringMostOccurScore = appDatabase.getHomeAndAwayMostScoreString(theGame.getHome(), theGame.getAway());
+                        stringMostOccurScore = appDatabase.getHomeAndAwayMostScoreString(theGame.getHome(), theGame.getAway(), theGame.getSeason());
                         try{
                             maxHomeEditText.setText(String.valueOf(stringMostOccurScore.get(0)));
                             maxAwayEditText.setText(String.valueOf(stringMostOccurScore.get(1)));
@@ -313,7 +378,7 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                         theGame = games.get(0);
                         maxScore = new ArrayList<>();
                         ArrayList<Game> myPredictions = new ArrayList<>();
-                        maxScore = appDatabase.getCheckedGamesByHomeAndAwayLastFive(theGame.getHome(), theGame.getAway());
+                        maxScore = appDatabase.getCheckedGamesByHomeAndAwayLastFive(theGame.getHome(), theGame.getAway(), theGame.getSeason());
                         try{
 
                             int home = maxScore.get(0);
@@ -327,7 +392,8 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                             }
                             myPredictions.size();
 
-                            filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows);
+                            filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows, baseUrl);
+
 
                             myPrediction_ListView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
@@ -358,7 +424,7 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
                         theGame = games.get(0);
                         maxScore = new ArrayList<>();
                         ArrayList<Game> myPredictions = new ArrayList<>();
-                        maxScore = appDatabase.getCheckedGamesByHomeAndAwayLastFiveByHA(theGame.getHome(), theGame.getAway());
+                        maxScore = appDatabase.getCheckedGamesByHomeAndAwayLastFiveByHA(theGame.getHome(), theGame.getAway(), theGame.getSeason());
                         try{
                             int home = maxScore.get(0);
                             int away = maxScore.get(1);
@@ -372,7 +438,8 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
 
                             myPredictions.size();
 
-                            filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows);
+                            filteredAdapter = new PredictionAdapter(getActivity(), myPredictions, R.layout.prediction_rows, baseUrl);
+
 
                             myPrediction_ListView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
@@ -421,7 +488,11 @@ public class PredictionsFragment extends Fragment implements IOnBackPressed {
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                }catch (NullPointerException e){
+
+                }
                 return false;
             }
         });

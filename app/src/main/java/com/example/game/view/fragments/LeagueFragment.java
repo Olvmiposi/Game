@@ -4,7 +4,6 @@ import static android.widget.AbsListView.OnScrollListener.SCROLL_STATE_IDLE;
 
 import android.app.SearchManager;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.view.LayoutInflater;
@@ -45,9 +44,11 @@ import com.example.game.viewModel.AppViewModel;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.ItemClickListener{
@@ -74,7 +75,7 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
     private Parcelable state = null;
     private int isInvinsible;
     private Bundle bundle;
-    private String args, passwordargs, tableargs, schrodingerargs;
+    private String args, passwordargs, tableargs, schrodingerargs, baseUrl;
     private ProgressBar progressBar;
 
     @Override
@@ -90,10 +91,12 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         setRetainInstance(true);
-
+        bundle = getArguments();
         //
         appViewModel = new ViewModelProvider(this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        baseUrl = bundle.getString("baseUrl");
+        appViewModel.setBaseUrl(baseUrl);
+        appViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
         mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
         listView  = getView().findViewById(R.id.list_view);
@@ -103,7 +106,6 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
         progressBar.setVisibility(View.GONE);
         ((MainActivity) getActivity()).disableSwipe();
         //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
-        bundle = getArguments();
 
         Toolbar mToolbar;
         setHasOptionsMenu(true);
@@ -153,7 +155,7 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
 
         if (args != null){
             mySwipeRefreshLayout.setOnRefreshListener(() -> {
-                appViewModel.getGames();
+                //appViewModel.getGames();
             });
         } else if (passwordargs != null) {
             mySwipeRefreshLayout.setOnRefreshListener(() -> {
@@ -272,7 +274,11 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                }catch (NullPointerException e){
+
+                }
                 return false;
             }
         });
@@ -310,7 +316,11 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
                     }
                     @Override
                     public boolean onQueryTextChange(String newText) {
-                        adapter.getFilter().filter(newText);
+                        try {
+                            adapter.getFilter().filter(newText);
+                        }catch (NullPointerException e){
+
+                        }
                         return false;
                     }
                 });
@@ -379,13 +389,14 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
 
                     AllGamesFragment allGamesFragment = new AllGamesFragment();
                     Bundle args = new Bundle();
+                    args.putString("baseUrl", baseUrl);
                     args.putString("league", selectedLeague.getName());
                     args.putInt("leagueId", selectedLeague.getLeagueId());
 
                     args.putSerializable("allGamesLeaguesId",(Serializable)allGamesLeaguesId);
                     args.putString("allGamesLeaguesIdBundle",args.toString());
                     allGamesFragment.setArguments(args);
-                    appViewModel.showFragment(allGamesFragment, view);
+                    appViewModel.replaceFragment(allGamesFragment, view);
                 }
             });
 
@@ -409,9 +420,10 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
                         allPasswordsLeagues.add(appDatabase.getLeagueById(leagueId));
                         gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate(leagueId);
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+                            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+
                             maxDate = Objects.requireNonNull(gameArrayList.stream()
-                                    .map(d -> LocalDate.parse(d.getDate(), dtf))
+                                    .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
                                     .max(Comparator.comparing(LocalDate::toEpochDay))
                                     .orElse(null)).format(dtf);
 
@@ -438,9 +450,10 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
                             gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(selectedLeague.getLeagueId(), selectedLeague.getSeason());
                             try{
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+                                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+
                                     maxDate = Objects.requireNonNull(gameArrayList.stream()
-                                            .map(d -> LocalDate.parse(d.getDate(), dtf))
+                                            .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
                                             .max(Comparator.comparing(LocalDate::toEpochDay))
                                             .orElse(null)).format(dtf);
 
@@ -449,13 +462,14 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
 
                                         PasswordsFragment passwordsFragment = new PasswordsFragment();
                                         Bundle args = new Bundle();
+                                        args.putString("baseUrl", baseUrl);
                                         args.putInt("isInvinsible", isInvinsible);
                                         args.putInt("leagueId", finalSelectedLeague.getLeagueId());
                                         args.putInt("season", finalSelectedLeague.getSeason());
                                         args.putString("league", finalSelectedLeague.getName());
                                         args.putString("maxDate", date);
                                         passwordsFragment.setArguments(args);
-                                        appViewModel.showFragment(passwordsFragment, view);
+                                        appViewModel.replaceFragment(passwordsFragment, view);
 
                                         adapter.notifyDataSetChanged();
                                         //allPasswordsLeagues.clear(); // clear list view after swipe refresh
@@ -496,9 +510,10 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
                         allPasswordsLeagues.add(appDatabase.getLeagueById(leagueId));
                         gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate(leagueId);
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+                            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+
                             maxDate = Objects.requireNonNull(gameArrayList.stream()
-                                    .map(d -> LocalDate.parse(d.getDate(), dtf))
+                                    .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
                                     .max(Comparator.comparing(LocalDate::toEpochDay))
                                     .orElse(null)).format(dtf);
 
@@ -524,9 +539,10 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
                             gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(selectedLeague.getLeagueId(), selectedLeague.getSeason());
                             try{
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+                                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+
                                     maxDate = Objects.requireNonNull(gameArrayList.stream()
-                                            .map(d -> LocalDate.parse(d.getDate(), dtf))
+                                            .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
                                             .max(Comparator.comparing(LocalDate::toEpochDay))
                                             .orElse(null)).format(dtf);
 
@@ -535,13 +551,14 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
 
                                         PasswordsFragment passwordsFragment = new PasswordsFragment();
                                         Bundle args = new Bundle();
+                                        args.putString("baseUrl", baseUrl);
                                         args.putInt("isInvinsible", isInvinsible);
                                         args.putInt("leagueId", finalSelectedLeague.getLeagueId());
                                         args.putInt("season", finalSelectedLeague.getSeason());
                                         args.putString("league", finalSelectedLeague.getName());
                                         args.putString("maxDate", date);
                                         passwordsFragment.setArguments(args);
-                                        appViewModel.showFragment(passwordsFragment, view);
+                                        appViewModel.replaceFragment(passwordsFragment, view);
 
                                         adapter.notifyDataSetChanged();
                                         //allPasswordsLeagues.clear(); // clear list view after swipe refresh
@@ -588,10 +605,11 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
 
                     TableFragment tableFragment = new TableFragment();
                     Bundle args = new Bundle();
+                    args.putString("baseUrl", baseUrl);
                     args.putInt("season", selectedLeague.getSeason());
                     args.putInt("leagueId", selectedLeague.getLeagueId());
                     tableFragment.setArguments(args);
-                    appViewModel.showFragment(tableFragment, view);
+                    appViewModel.replaceFragment(tableFragment, view);
                 }
             });
 
@@ -628,10 +646,11 @@ public class LeagueFragment extends Fragment implements YearRecyclerViewAdapter.
                     selectedLeague = (League) adapter.getItem(position);
                     SchrodingerFragment schrodingerFragment = new SchrodingerFragment();
                     Bundle args = new Bundle();
+                    args.putString("baseUrl", baseUrl);
                     args.putInt("season", selectedLeague.getSeason());
                     args.putInt("leagueId", selectedLeague.getLeagueId());
                     schrodingerFragment.setArguments(args);
-                    appViewModel.showFragment(schrodingerFragment, view);
+                    appViewModel.replaceFragment(schrodingerFragment, view);
 
                 }
             });

@@ -4,7 +4,6 @@ import android.app.AlertDialog;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -14,8 +13,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
@@ -23,12 +20,10 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStoreOwner;
@@ -38,6 +33,7 @@ import com.example.game.R;
 import com.example.game.adapter.LeagueAdapter;
 import com.example.game.databinding.CallApiActivityBinding;
 import com.example.game.model.CallApiModel;
+import com.example.game.model.Game;
 import com.example.game.model.League;
 import com.example.game.repository.AppDatabase;
 import com.example.game.service.IOnBackPressed;
@@ -45,8 +41,6 @@ import com.example.game.view.MainActivity;
 import com.example.game.viewModel.AppViewModel;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class ShowCallApiFragment extends Fragment implements IOnBackPressed {
     private AppViewModel appViewModel;
@@ -58,7 +52,7 @@ public class ShowCallApiFragment extends Fragment implements IOnBackPressed {
     private int leagueId;
     private Bundle bundle;
     private ArrayList<League> leagueArrayList;
-    private String  from_date, to_date, seasonYear;
+    private String  from_date, to_date, seasonYear, baseUrl;
     private TextView textView;
     private CallApiActivityBinding binding;
     private SwipeRefreshLayout mySwipeRefreshLayout;
@@ -75,15 +69,17 @@ public class ShowCallApiFragment extends Fragment implements IOnBackPressed {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        bundle = getArguments();
+        baseUrl = bundle.getString("baseUrl");
         appViewModel = new ViewModelProvider((ViewModelStoreOwner) this).get(AppViewModel.class);
-        appViewModel.init(getContext());
+        appViewModel.init(getContext(), baseUrl);
         appDatabase = AppDatabase.getAppDb(getContext());
         // TODO: Use the ViewModel
         callApiList_View  = getView().findViewById(R.id.callApiList_View);
         textView = getView().findViewById(R.id.textView);
         progressBar = getView().findViewById(R.id.progressBar);
         mySwipeRefreshLayout = getView().findViewById(R.id.swiperefresh);
-
+        progressBar.setVisibility(View.GONE);
         ((MainActivity) getActivity()).disableSwipe();
         //((AppCompatActivity) requireActivity()).getSupportActionBar().hide();
 
@@ -98,7 +94,17 @@ public class ShowCallApiFragment extends Fragment implements IOnBackPressed {
 
         mToolbar.inflateMenu(R.menu.options_menu);
 
-        bundle = getArguments();
+
+        appViewModel.isLoading().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean aBoolean) {
+                if(aBoolean){
+                    progressBar.setVisibility(View.VISIBLE);
+                }else{
+                    progressBar.setVisibility(View.GONE);
+                }
+            }
+        });
 
 
         leagueId = bundle.getInt("leagueId", 0);
@@ -115,6 +121,22 @@ public class ShowCallApiFragment extends Fragment implements IOnBackPressed {
             adapter.notifyDataSetChanged();
 
             textView.setText(leagueArrayList.get(0).getName());
+
+            callApiList_View.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+                @Override
+                public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
+                    League league = new League();
+                    league = (League) adapter.getItem(position);
+
+                    League finalLeague = league;
+                    appViewModel.updateCheckedGames(finalLeague);
+
+                    return false;
+                }
+            });
+
+
             callApiList_View.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -141,6 +163,36 @@ public class ShowCallApiFragment extends Fragment implements IOnBackPressed {
                     builder.setNegativeButton("No", (DialogInterface.OnClickListener) (dialog, which) -> {
                         dialog.cancel();
                     });
+
+                    builder.setNeutralButton("Setup", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id)
+                        {
+                            appViewModel.callApi(callApiModel, view);
+                            appViewModel.callApiResponse().observe(getViewLifecycleOwner(), new Observer<Void>() {
+                                @Override
+                                public void onChanged(Void unused) {
+                                    try {
+                                        Thread.sleep(3000);
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                    }
+                                    appViewModel.createGame(view);
+                                    appViewModel.createGameResponse().observe(getViewLifecycleOwner(), new Observer<ArrayList<Game>>() {
+                                        @Override
+                                        public void onChanged(ArrayList<Game> games) {
+                                            try {
+                                                Thread.sleep(3000);
+                                            } catch (InterruptedException e) {
+                                                Thread.currentThread().interrupt();
+                                            }
+                                            appViewModel.verifyPastGame(view);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+
                     AlertDialog alertDialog = builder.create();
                     alertDialog.show();
                     alertDialog.setCanceledOnTouchOutside(true);
@@ -214,7 +266,11 @@ public class ShowCallApiFragment extends Fragment implements IOnBackPressed {
             }
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
+                try {
+                    adapter.getFilter().filter(newText);
+                }catch (NullPointerException e){
+
+                }
                 return false;
             }
         });
@@ -241,7 +297,11 @@ public class ShowCallApiFragment extends Fragment implements IOnBackPressed {
                     }
                     @Override
                     public boolean onQueryTextChange(String newText) {
-                        adapter.getFilter().filter(newText);
+                        try {
+                            adapter.getFilter().filter(newText);
+                        }catch (NullPointerException e){
+
+                        }
                         return false;
                     }
                 });

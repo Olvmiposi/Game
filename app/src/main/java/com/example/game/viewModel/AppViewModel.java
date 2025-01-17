@@ -1,17 +1,13 @@
 package com.example.game.viewModel;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Application;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
-import android.view.ContextThemeWrapper;
 import android.view.View;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -20,7 +16,6 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
-import androidx.lifecycle.ViewModelProvider;
 
 import com.example.game.R;
 import com.example.game.model.Bet;
@@ -30,6 +25,8 @@ import com.example.game.model.ClubStats;
 import com.example.game.model.Game;
 import com.example.game.model.Info;
 import com.example.game.model.League;
+import com.example.game.model.LiveUpdate;
+import com.example.game.model.LiveUpdateResponse;
 import com.example.game.model.Usage;
 import com.example.game.model.User;
 import com.example.game.repository.AppRepository;
@@ -47,6 +44,9 @@ public class AppViewModel extends ViewModel {
     public Game game ;
     private MyApplication myApplication;
     private MutableLiveData<Boolean> isLoading;
+
+
+    private MutableLiveData<ArrayList<LiveUpdateResponse>> getLiveUpdateResponse;
     private MutableLiveData<ArrayList<Game>> getUpdate, verifyPastGame, searchGame, searchSchrodinger,createGame, getGames, todayGame, getAllPredictions, todayUsername, getSchrodingerGames;
     private MutableLiveData<LoginResponse> loginUser;
     private MutableLiveData<ArrayList<BetResponse>> getPairs;
@@ -59,6 +59,7 @@ public class AppViewModel extends ViewModel {
     private  SavedStateHandle state;
 
     public MutableLiveData<String> textView ;
+    private String baseUrl;
 
     @RequiresApi(api = Build.VERSION_CODES.P)
     public AppViewModel(SavedStateHandle state) {
@@ -82,7 +83,7 @@ public class AppViewModel extends ViewModel {
         createGame = appRepository.getCreateGame();
         updateLeagueFile = appRepository.getUpdateLeagueFile();
         getAllLeagues = appRepository.getGetAllLeagues();
-
+        getLiveUpdateResponse = appRepository.getLiveUpdateLiveData();
         getUsernameInfo = appRepository.getUsernameInfoLiveData();
         getAllPredictions = appRepository.getAllPredictionsLiveData();
 
@@ -93,10 +94,14 @@ public class AppViewModel extends ViewModel {
         todayUsername = appRepository.getTodayUsernameLiveData();
         getSchrodingerGames = appRepository.getSchrodingerGamesLiveData();
     }
-    public void init( Context context/*, Activity activity*/) {
+    public void init(Context context) {
+        this.context = context;
+        appRepository.init(context, baseUrl);
+    }
+    public void init(Context context,String baseUrl) {
         this.context = context;
         this.activity = activity;
-        appRepository.init(context);
+        appRepository.init(context, baseUrl);
     }
     public MutableLiveData<String> getString() {
         if (textView == null) {
@@ -121,6 +126,14 @@ public class AppViewModel extends ViewModel {
         return ((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().findFragmentByTag(fragmentTag);
     }
 
+    public Fragment getTopFragment(Activity activity) {
+        if (((AppCompatActivity) getActivity(activity)).getSupportFragmentManager().getBackStackEntryCount() == 0) {
+            return null;
+        }
+        String fragmentTag = ((AppCompatActivity) getActivity(activity)).getSupportFragmentManager().getBackStackEntryAt(((AppCompatActivity) getActivity(activity)).getSupportFragmentManager().getBackStackEntryCount() - 1).getName();
+        return ((AppCompatActivity) getActivity(activity)).getSupportFragmentManager().findFragmentByTag(fragmentTag);
+    }
+
     public void addFragment(Fragment fragment, View view){
         Fragment topFragment = getTopFragment(view);
         String TAG = fragment.getClass().getSimpleName();
@@ -135,16 +148,44 @@ public class AppViewModel extends ViewModel {
         fragmentTransaction.addToBackStack(TAG);
         fragmentTransaction.commit();
     }
+    public void replaceFragment(Fragment fragment, View view){
+
+        String backStateName = fragment.getClass().getName();
+
+        FragmentManager manager = ((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager();
+        boolean fragmentPopped = manager.popBackStackImmediate (backStateName, 0);
+
+        if (!fragmentPopped && manager.findFragmentByTag(backStateName) == null){ //fragment not in back stack, create it.
+            FragmentTransaction ft = manager.beginTransaction();
+            ft.replace(R.id.layout_placeholder, fragment, backStateName);
+            ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+            ft.addToBackStack(backStateName);
+            ft.commit();
+        }
+    }
+
+    public FragmentManager getFragmentManager (Fragment fragment, View view){
+        String backStateName = fragment.getClass().getName();
+
+        FragmentManager manager = ((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager();
+
+        return manager;
+    }
 
     public void showFragment(Fragment fragment, View view) {
         Fragment topFragment = getTopFragment(view);
         String TAG = fragment.getClass().getSimpleName();
         FragmentTransaction fragmentTransaction = ((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().beginTransaction();
         fragmentTransaction.replace(R.id.layout_placeholder, fragment, TAG);
+        Log.d("Stack count", "current fragment TAG " + TAG + "");
+
 
         if (topFragment != null){
+            Log.d("Stack count",  "Top fragment TAG "+topFragment.getClass().getSimpleName() + "");
             if (topFragment.getClass().getSimpleName().equals(TAG)){
-                fragmentTransaction.addToBackStack(null);
+                Log.d("Stack count", "current fragment TAG from if " + TAG + "");
+                Log.d("Stack count",  "Top fragment TAG "+topFragment.getClass().getSimpleName() + "");
+                fragmentTransaction.addToBackStack(TAG);
                 backstackFragment(view);
             }else{
                 fragmentTransaction.addToBackStack(TAG);
@@ -152,11 +193,19 @@ public class AppViewModel extends ViewModel {
         }else{
             fragmentTransaction.addToBackStack(TAG);
         }
-        fragmentTransaction.commitAllowingStateLoss();
+        fragmentTransaction.commit();
+
+        Log.d("Stack count", "Initial Stack count " +((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().getBackStackEntryCount() + "");
+        int countSize = ((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().getBackStackEntryCount();
+        Log.d("Stack count", "countSize Stack count "+((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().getBackStackEntryCount() + "");
+        for (int i = 0; i < countSize; i++) {
+            Log.d("Stack count", "Stack count Name "+((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().getBackStackEntryAt(i).getName() + "");
+            Log.d("Stack count", "Stack count Entry "+((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().getBackStackEntryAt(i) + "");
+        }
     }
 
     public void backstackFragment(View view) {
-        //Log.d("Stack count", ((AppCompatActivity) getActivity(context)).getSupportFragmentManager().getBackStackEntryCount() + "");
+        Log.d("Stack count", "Stack count from backStack " +((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().getBackStackEntryCount() + "");
         if (((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager().getBackStackEntryCount() == 0) {
             ((AppCompatActivity) getActivity(view.getContext())).finish();
 
@@ -198,6 +247,10 @@ public class AppViewModel extends ViewModel {
     public void verifyGame(View view, Game game, int gameId){
         appRepository.verifyGame(gameId, game, view);
     }
+    public void updateSchrodinger(View view, Game game, int gameId){
+        appRepository.updateSchrodinger(gameId, game, view);
+    }
+
     public void getStanding(League league){
         appRepository.getStandings(league);
     }
@@ -207,8 +260,13 @@ public class AppViewModel extends ViewModel {
     public void getUpdate( Usage usage){
         appRepository.getUpdate(usage);
     }
-    public void getGames(){
-        appRepository.getGames();
+
+
+    public void updateCheckedGames(League league){
+        appRepository.updateCheckedGames(league);
+    }
+    public void getGames(League league){
+        appRepository.getGames(league);
     }
     public void getTodayGame(){
         appRepository.getTodayGame();
@@ -219,11 +277,26 @@ public class AppViewModel extends ViewModel {
     public void searchGameOnClick( String s ) {
         appRepository.searchGame(s);
     }
+
+
+    public void getLiveUpdate(LiveUpdate liveUpdate){
+        appRepository.getLiveUpdate(liveUpdate);
+    }
+
+    public MutableLiveData<ArrayList<LiveUpdateResponse>> getLiveUpdateResponse(){
+        if (getLiveUpdateResponse == null) {
+            getLiveUpdateResponse = new MutableLiveData<>();
+        }
+        return getLiveUpdateResponse;
+    }
+
+
     public void searchSchrodingerOnClick( String s ) {
         appRepository.searchSchrodinger(s);
     }
     public void getSchrodingerGames(){
         appRepository.getSchrodingerGames();
+        appRepository.getSchrodingers();
 
     }
     public void getUsernameInfo() {
@@ -314,5 +387,11 @@ public class AppViewModel extends ViewModel {
             getUsernameInfo =  new MutableLiveData<Info>();
         }
         return getUsernameInfo;
+    }
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
     }
 }

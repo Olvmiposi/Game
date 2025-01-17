@@ -20,7 +20,6 @@
             android:layout_height="match_parent" >
 
             <LinearLayout
-                android:id="@+id/layout"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
@@ -58,6 +57,34 @@
                         android:textSize="15sp" />
 
                 </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:orientation="horizontal">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:layout_gravity="center"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:hint="Odds :"
+                            android:gravity="center"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/odds"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:hint="0.00"
+                            android:gravity="center"
+                            android:textSize="15sp" />
+                    </LinearLayout>
+                </LinearLayout>
 
                 <ImageView
                     android:id="@+id/ifSchrodinger"
@@ -67,6 +94,7 @@
                     app:tint="#D90F10" />
 
                 <LinearLayout
+                    android:id="@+id/layout"
                     android:layout_width="match_parent"
                     android:layout_height="40dp"
                     android:layout_gravity="center"
