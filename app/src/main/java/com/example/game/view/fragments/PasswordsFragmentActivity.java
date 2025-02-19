@@ -74,10 +74,13 @@ public class PasswordsFragmentActivity  extends Fragment implements YearRecycler
     private AppDatabase appDatabase;
     private String maxDate, baseUrl;
 
+    private ArrayList<String> maxDates;
     private Parcelable state = null;
     private Parcelable recyclerState = null;
+    private static final String LIST_STATE = "listState";
+    private static final String recyclerviewState = "recyclerviewState";
     private Bundle bundle;
-    private int isInvinsible;
+    private int isInvinsible, currentVisiblePosition;
 
     private ProgressBar progressBar;
 
@@ -192,7 +195,7 @@ public class PasswordsFragmentActivity  extends Fragment implements YearRecycler
         maxDate = null;
 
         // array list of maxDates(dates) to get the maximum dates of each league games
-        ArrayList<String> maxDates = new ArrayList<>();
+        maxDates = new ArrayList<>();
         ArrayList<Integer> leagueIds = new ArrayList<>();
         //while true, look for the latest checked games from the years
         // if latest game is found, break
@@ -294,86 +297,13 @@ public class PasswordsFragmentActivity  extends Fragment implements YearRecycler
         recyclerView.setAdapter(yearRecyclerViewAdapter); // set the Adapter to RecyclerView
 
 
-
         yearRecyclerViewAdapter.setClickListener(new YearRecyclerViewAdapter.ItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
 
-                yearRecyclerViewAdapter.setSelectedItem(position);
-                ArrayList<Integer> leagueIds = new ArrayList<>();
+                populateListView(position, maxDates);
 
-                maxDates.clear();
-                allPasswordLeagues.clear();
 
-                mySwipeRefreshLayout.setOnRefreshListener(() -> {
-                    appViewModel.getTodayUsername();
-                    onCompletion();
-                });
-
-                int season = yearRecyclerViewAdapter.getItem(position);
-                leagueIds = appDatabase.getDistinctLeagueBySeason(season);
-                for (int leagueId:leagueIds) {
-                    allPasswordLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
-                }
-
-                for(League league: allPasswordLeagues) {
-                    gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(league.getLeagueId(), league.getSeason());
-                    try{
-                        maxDates.add(league.getEnd());
-
-                    }catch(NullPointerException e ){
-
-                    }
-                }
-
-                //make all password league season year equal to yearRecyclerViewAdapter item click
-
-                adapter = new LeagueAdapter(getActivity(), allPasswordLeagues, R.layout.league_activity_rows, 1, maxDates);
-                listView.setAdapter(adapter);
-                adapter.setLeagues(allPasswordLeagues);
-                if(state != null) {
-                    listView.onRestoreInstanceState(state);
-                }
-
-                adapter.notifyDataSetChanged();
-                onCompletion();
-                listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        League selectedLeague = new League();
-                        selectedLeague = (League) adapter.getItem(position);
-                        League finalSelectedLeague = selectedLeague;
-
-                        gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(selectedLeague.getLeagueId(), selectedLeague.getSeason());
-                        try{
-                            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
-
-                            maxDate = Objects.requireNonNull(gameArrayList.stream()
-                                    .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
-                                    .max(Comparator.comparing(LocalDate::toEpochDay))
-                                    .orElse(null)).format(dtf);
-
-                            String date = maxDate;
-                            if (date != null){
-
-                                PasswordsFragment passwordsFragment = new PasswordsFragment();
-                                Bundle args = new Bundle();
-                                args.putInt("isInvinsible", isInvinsible);
-                                args.putInt("leagueId", finalSelectedLeague.getLeagueId());
-                                args.putInt("season", finalSelectedLeague.getSeason());
-                                args.putString("league", finalSelectedLeague.getName());
-                                args.putString("maxDate", date);
-                                args.putString("baseUrl", baseUrl);
-                                passwordsFragment.setArguments(args);
-                                appViewModel.replaceFragment(passwordsFragment, view);
-                                adapter.notifyDataSetChanged();
-                                //allPasswordsLeagues.clear(); // clear list view after swipe refresh
-                            }
-                        }catch(NullPointerException e ){
-
-                        }
-                    }
-                });
 
             }
         });
@@ -427,6 +357,87 @@ public class PasswordsFragmentActivity  extends Fragment implements YearRecycler
         return false;
     }
 
+    public void populateListView(int position, ArrayList<String> maxDates){
+
+        yearRecyclerViewAdapter.setSelectedItem(position);
+        ArrayList<Integer> leagueIds = new ArrayList<>();
+
+        currentVisiblePosition = position;
+
+        maxDates.clear();
+        allPasswordLeagues.clear();
+
+        mySwipeRefreshLayout.setOnRefreshListener(() -> {
+            appViewModel.getTodayUsername();
+            onCompletion();
+        });
+
+        int season = yearRecyclerViewAdapter.getItem(position);
+        leagueIds = appDatabase.getDistinctLeagueBySeason(season);
+        for (int leagueId:leagueIds) {
+            allPasswordLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
+        }
+
+        for(League league: allPasswordLeagues) {
+            gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(league.getLeagueId(), league.getSeason());
+            try{
+                maxDates.add(league.getEnd());
+
+            }catch(NullPointerException e ){
+
+            }
+        }
+
+        //make all password league season year equal to yearRecyclerViewAdapter item click
+
+        adapter = new LeagueAdapter(getActivity(), allPasswordLeagues, R.layout.league_activity_rows, 1, maxDates);
+        listView.setAdapter(adapter);
+        adapter.setLeagues(allPasswordLeagues);
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
+        }
+
+        adapter.notifyDataSetChanged();
+        onCompletion();
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                League selectedLeague = new League();
+                selectedLeague = (League) adapter.getItem(position);
+                League finalSelectedLeague = selectedLeague;
+
+                gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(selectedLeague.getLeagueId(), selectedLeague.getSeason());
+                try{
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+
+                    maxDate = Objects.requireNonNull(gameArrayList.stream()
+                            .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
+                            .max(Comparator.comparing(LocalDate::toEpochDay))
+                            .orElse(null)).format(dtf);
+
+                    String date = maxDate;
+                    if (date != null){
+
+                        PasswordsFragment passwordsFragment = new PasswordsFragment();
+                        Bundle args = new Bundle();
+                        args.putInt("isInvinsible", isInvinsible);
+                        args.putInt("leagueId", finalSelectedLeague.getLeagueId());
+                        args.putInt("season", finalSelectedLeague.getSeason());
+                        args.putString("league", finalSelectedLeague.getName());
+                        args.putString("maxDate", date);
+                        args.putString("baseUrl", baseUrl);
+                        passwordsFragment.setArguments(args);
+                        appViewModel.replaceFragment(passwordsFragment, view);
+                        adapter.notifyDataSetChanged();
+                        //allPasswordsLeagues.clear(); // clear list view after swipe refresh
+                    }
+                }catch(NullPointerException e ){
+
+                }
+            }
+        });
+    }
+
 
     @Override
     public void onPrepareOptionsMenu(Menu menu) {
@@ -468,6 +479,8 @@ public class PasswordsFragmentActivity  extends Fragment implements YearRecycler
     @Override
     public void onStart() {
         super.onStart();
+        yearRecyclerViewAdapter.setSelected_position(currentVisiblePosition);
+        populateListView(currentVisiblePosition, maxDates);
     }
     @Override
     public void onStop() {
@@ -476,15 +489,15 @@ public class PasswordsFragmentActivity  extends Fragment implements YearRecycler
     @Override
     public void onResume(){
         super.onResume();
+
     }
     public void onPause(){
-        state = listView.onSaveInstanceState();
         super.onPause();
-
     }
 
     @Override
     public void onItemClick(View view, int position) {
+
         Toast.makeText(getActivity(), "You clicked " + yearRecyclerViewAdapter.getItem(position) + " on item position " + position, Toast.LENGTH_SHORT).show();
     }
 }

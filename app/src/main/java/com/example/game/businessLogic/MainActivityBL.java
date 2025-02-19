@@ -125,71 +125,6 @@ public class MainActivityBL {
         }
 
 
-        //latestDate = String.valueOf(appDatabase.getLatestDate());
-
-        appDatabase.getGames().observe((LifecycleOwner) activity, new Observer<List<Game>>() {
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            @Override
-            public void onChanged(List<Game> games) {
-                if(games == null){
-                }else {
-                    for(Game game : games ) {
-                        if(!allGamesLeaguesId.contains(game.getLeagueId()))
-                            allGamesLeaguesId.add(game.getLeagueId());
-                    }
-
-                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
-
-                    try {
-                        latestDate = Objects.requireNonNull(games.stream()
-                                .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
-                                .min(Comparator.comparing(LocalDate::toEpochDay))
-                                .orElse(null)).format(dtf);
-                    }catch (NullPointerException e){}
-
-
-
-                }
-            }
-        });
-
-
-        games = appDatabase.getAllCheckedGamesList();
-        for(Game game : games) {
-            league = appDatabase.getLeagueByIdAndSeason(game.getLeagueId(), game.getSeason());
-            if(!allPasswordLeagues.contains(league))
-                allPasswordLeagues.add(league);
-        }
-
-
-
-        // for api 3001 i.e 2024api
-        appDatabase.getSchrodingerGames().observe((LifecycleOwner) activity, new Observer<List<Game>>() {
-            @Override
-            public void onChanged(List<Game> games) {
-                if(games == null){
-                }else {
-                    for(Game game : games ) {
-                        if(!allSchrodingerLeaguesId.contains(game.getLeagueId()))
-                            allSchrodingerLeaguesId.add(game.getLeagueId());
-                    }
-                }
-            }
-        });
-
-
-        // for api 3000 i.e 2018api
-//        games = appDatabase.getSchrodingersGames();
-//
-//        try{
-//            for(Game game : games ) {
-//                if(!allSchrodingerLeaguesId.contains(game.getLeagueId()))
-//                    allSchrodingerLeaguesId.add(game.getLeagueId());
-//            }
-//        }catch (NullPointerException e){}
-
-
-
 
 
         passwordBtn.setOnLongClickListener(new View.OnLongClickListener() {
@@ -199,7 +134,6 @@ public class MainActivityBL {
                 PasswordsFragmentActivity passwordsFragmentActivity = new PasswordsFragmentActivity();
                 Bundle args = new Bundle();
                 args.putString("baseUrl", baseUrl);
-                args.putSerializable("allPasswordLeagues",(Serializable)allPasswordLeagues);
                 args.putInt("isInvinsible", isInvinsible);
                 passwordsFragmentActivity.setArguments(args);
                 appViewModel.replaceFragment(passwordsFragmentActivity, v);
@@ -215,8 +149,6 @@ public class MainActivityBL {
                 SchrodingerFragmentActivity schrodingerFragmentActivity = new SchrodingerFragmentActivity();
                 Bundle args = new Bundle();
                 args.putString("baseUrl", baseUrl);
-                args.putSerializable("allSchrodingerLeaguesId", (Serializable)allSchrodingerLeaguesId);
-                args.putSerializable("allPasswordLeagues",(Serializable)allPasswordLeagues);
                 args.putInt("isInvinsible", isInvinsible);
                 schrodingerFragmentActivity.setArguments(args);
                 appViewModel.replaceFragment(schrodingerFragmentActivity, v);
@@ -238,7 +170,6 @@ public class MainActivityBL {
             if (info != null) {
                 total_games_count.setVisibility(View.VISIBLE);
                 total_games_count.setText(myFormat.format(info.getNo_of_games()));
-
                 available_usernames.setVisibility(View.VISIBLE);
                 available_usernames.setText(myFormat.format((info.getAvailable_username())));
             }
@@ -329,8 +260,6 @@ public class MainActivityBL {
         AllGamesFragmentActivity allGamesFragment = new AllGamesFragmentActivity();
         Bundle args = new Bundle();
         args.putString("baseUrl", baseUrl);
-        args.putSerializable("allGamesLeaguesId",(Serializable)allGamesLeaguesId);
-        args.putSerializable("allPasswordLeagues",(Serializable)allPasswordLeagues);
         args.putString("latestDate", latestDate);
         allGamesFragment.setArguments(args);
         appViewModel.replaceFragment(allGamesFragment, view);
@@ -341,12 +270,9 @@ public class MainActivityBL {
         SchrodingerFragmentActivity schrodingerFragment = new SchrodingerFragmentActivity();
         Bundle args = new Bundle();
         args.putString("baseUrl", baseUrl);
-        args.putSerializable("allSchrodingerLeaguesId", (Serializable)allSchrodingerLeaguesId);
-        args.putSerializable("allPasswordLeagues",(Serializable)allPasswordLeagues);
         args.putString("latestDate", latestDate);
         args.putInt("isInvinsible", isInvinsible);
         schrodingerFragment.setArguments(args);
-
         appViewModel.replaceFragment(schrodingerFragment, view);
 
 
@@ -364,10 +290,8 @@ public class MainActivityBL {
         PasswordsFragmentActivity passwordFragment = new PasswordsFragmentActivity();
         Bundle args = new Bundle();
         args.putString("baseUrl", baseUrl);
-        args.putSerializable("allPasswordLeagues",(Serializable)allPasswordLeagues);
         args.putInt("isInvinsible", isInvinsible);
         passwordFragment.setArguments(args);
-
         appViewModel.replaceFragment(passwordFragment, view);
 
     }

@@ -11,6 +11,9 @@
         app:actionViewClass="android.widget.SearchView" />
 
     <item
+        android:id="@+id/defaultItem"
+        android:title="Default" />
+    <item
         android:id="@+id/max"
         android:title="Show Max" />
     <item
@@ -31,7 +34,6 @@
     <item
         android:id="@+id/lastFiveByHA"
         android:title="Show Last 5 By Home Or Away" />
-
     <item
         android:id="@+id/mostOccurInLeague"
         android:title="Show Most Occurred Score in Season" />

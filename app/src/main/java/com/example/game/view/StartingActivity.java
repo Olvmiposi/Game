@@ -99,6 +99,7 @@ public class StartingActivity extends AppCompatActivity {
                     }
                     else {
 
+                        appViewModel.getAllLeagues();
                         appViewModel.getUsernameInfo();
                         appViewModel.getTodayGame();
                         appViewModel.getCheckedGames();
@@ -150,6 +151,7 @@ public class StartingActivity extends AppCompatActivity {
                     }
                     else {
 
+                        appViewModel.getAllLeagues();
                         appViewModel.getUsernameInfo();
                         appViewModel.getTodayGame();
                         appViewModel.getCheckedGames();
@@ -201,6 +203,7 @@ public class StartingActivity extends AppCompatActivity {
                     }
                     else {
 
+                        appViewModel.getAllLeagues();
                         appViewModel.getUsernameInfo();
                         appViewModel.getTodayGame();
                         appViewModel.getCheckedGames();

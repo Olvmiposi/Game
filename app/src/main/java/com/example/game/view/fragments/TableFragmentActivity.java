@@ -67,8 +67,8 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
     private String maxDate, baseUrl;
     private Parcelable state = null;
     private ArrayList<League> allGamesLeagues;
-
-    private int isInvinsible;
+    private ArrayList<String> maxDates;
+    private int isInvinsible, currentVisiblePosition;
     private Bundle bundle;
     private ProgressBar progressBar;
 
@@ -240,7 +240,7 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
     @RequiresApi(api = Build.VERSION_CODES.O)
     public void myUpdateOperation(){
         maxDate = null;
-        ArrayList<String> maxDates = new ArrayList<>();
+        maxDates = new ArrayList<>();
         ArrayList<Integer> leagueIds = new ArrayList<>();
         yearRecyclerViewAdapter = new YearRecyclerViewAdapter(getActivity(), years);
         //while true, look for the latest checked games from the years
@@ -319,75 +319,81 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
             @Override
             public void onItemClick(View view, int position) {
 
-                ArrayList<League> currentYearLeague = new ArrayList<>();
-                ArrayList<Integer> leagueIds = new ArrayList<>();
-
-                maxDates.clear();
-                allGamesLeagues.clear();
-
-                int season = yearRecyclerViewAdapter.getItem(position);
-
-                leagueIds = appDatabase.getDistinctLeagueBySeason(season);
-                for (int leagueId:leagueIds) {
-                    allGamesLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
-                }
+                populateListView(position, maxDates);
 
 
-                mySwipeRefreshLayout.setOnRefreshListener(() -> {
-                    for (League league: allGamesLeagues) {
-                        new Thread(() -> {
-                            try {
-                                TableBL tableBL = new TableBL(appDatabase);
-                                tableBL.SeedTableDB(league.getLeagueId(), league.getSeason());
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }).start();
+            }
+        });
+    }
+    public void populateListView(int position, ArrayList<String> maxDates){
+
+        ArrayList<Integer> leagueIds = new ArrayList<>();
+
+        currentVisiblePosition = position;
+
+        maxDates.clear();
+        allGamesLeagues.clear();
+
+        int season = yearRecyclerViewAdapter.getItem(position);
+
+        leagueIds = appDatabase.getDistinctLeagueBySeason(season);
+        for (int leagueId:leagueIds) {
+            allGamesLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
+        }
+
+
+        mySwipeRefreshLayout.setOnRefreshListener(() -> {
+            for (League league: allGamesLeagues) {
+                new Thread(() -> {
+                    try {
+                        TableBL tableBL = new TableBL(appDatabase);
+                        tableBL.SeedTableDB(league.getLeagueId(), league.getSeason());
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    onCompletion();
-                });
+                }).start();
+            }
+            onCompletion();
+        });
 
-                for(League league: allGamesLeagues) {
-                    try{
-                        maxDates.add(league.getEnd());
+        for(League league: allGamesLeagues) {
+            try{
+                maxDates.add(league.getEnd());
 
-                    }catch(NullPointerException e ){
+            }catch(NullPointerException e ){
 
-                    }
-                }
+            }
+        }
 
-                //make all password league season year equal to yearRecyclerViewAdapter item click
+        //make all password league season year equal to yearRecyclerViewAdapter item click
 
-                adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 3, maxDates);
-                listView.setAdapter(adapter);
-                adapter.setLeagues(allGamesLeagues);
+        adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 3, maxDates);
+        listView.setAdapter(adapter);
+        adapter.setLeagues(allGamesLeagues);
+        adapter.notifyDataSetChanged();
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
+        }
+        onCompletion();
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                League selectedLeague = new League();
+                selectedLeague = (League) adapter.getItem(position);
+
+                TableFragment tableFragment = new TableFragment();
+                Bundle args = new Bundle();
+                args.putString("baseUrl", baseUrl);
+                args.putInt("season", selectedLeague.getSeason());
+                args.putInt("leagueId", selectedLeague.getLeagueId());
+                tableFragment.setArguments(args);
+                appViewModel.replaceFragment(tableFragment, view);
                 adapter.notifyDataSetChanged();
-                if(state != null) {
-                    listView.onRestoreInstanceState(state);
-                }
-                onCompletion();
-                listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        League selectedLeague = new League();
-                        selectedLeague = (League) adapter.getItem(position);
-
-                        TableFragment tableFragment = new TableFragment();
-                        Bundle args = new Bundle();
-                        args.putString("baseUrl", baseUrl);
-                        args.putInt("season", selectedLeague.getSeason());
-                        args.putInt("leagueId", selectedLeague.getLeagueId());
-                        tableFragment.setArguments(args);
-                        appViewModel.replaceFragment(tableFragment, view);
-                        adapter.notifyDataSetChanged();
-                    }
-                });
             }
         });
 
-
-
     }
+
     public void onScroll(AbsListView view, int firstVisibleItem,
                          int visibleItemCount, int totalItemCount) {
         this.currentFirstVisibleItem = firstVisibleItem;
@@ -415,6 +421,8 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
     @Override
     public void onStart() {
         super.onStart();
+        yearRecyclerViewAdapter.setSelected_position(currentVisiblePosition);
+        populateListView(currentVisiblePosition, maxDates);
     }
     @Override
     public void onStop() {
@@ -424,15 +432,7 @@ public class TableFragmentActivity  extends Fragment implements YearRecyclerView
     public void onResume(){
         super.onResume();
     }
-    @Override
-    public void onSaveInstanceState(Bundle Bstate) {
-        super.onSaveInstanceState(Bstate);
-        state = listView.onSaveInstanceState();
-        Bstate.putParcelable(LIST_STATE, state);
-        if(state != null) {
-            listView.onRestoreInstanceState(state);
-        }
-    }
+
     @Override
     public void onItemClick(View view, int position) {
         Toast.makeText(getActivity(), "You clicked " + yearRecyclerViewAdapter.getItem(position) + " on item position " + position, Toast.LENGTH_SHORT).show();

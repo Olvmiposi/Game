@@ -23,11 +23,11 @@ public interface ClubStatsDAO {
     @Query("SELECT distinct * FROM clubStats WHERE leagueId = :leagueId and season = :season ORDER By position, goalsDiff, datetime desc")
     List<ClubStats> getTable(int leagueId, int season);
 
-    @Query("SELECT distinct * FROM clubStats WHERE leagueId = :leagueId and dateTime = :date ORDER By position, goalsFor asc")
-    List<ClubStats> getTableByDate(int leagueId, String date);
+    @Query("SELECT distinct * FROM clubStats WHERE leagueId = :leagueId and season = :season and dateTime = :date ORDER By position, goalsFor asc")
+    List<ClubStats> getTableByDate(int leagueId, int season, String date);
 
-    @Query("SELECT * FROM clubStats WHERE leagueId = :leagueId and dateTime = :date and name = :name ")
-    ClubStats getGamePosition(int leagueId, String date, String name);
+    @Query("SELECT * FROM clubStats WHERE leagueId = :leagueId and season = :season and dateTime = :date and name = :name ")
+    ClubStats getGamePosition(int leagueId, int season, String date, String name);
     @Delete
     void delete(ClubStats table);
 

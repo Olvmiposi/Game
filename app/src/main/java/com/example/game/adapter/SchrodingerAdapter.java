@@ -199,8 +199,8 @@ public class SchrodingerAdapter extends BaseAdapter {
             try{
                 maxDate = table.get(table.size() - 1).getDateTime();
 
-                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getHome());
-                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getAway());
+                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), currentGame.getSeason(), maxDate, currentGame.getHome());
+                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), currentGame.getSeason(), maxDate, currentGame.getAway());
 
                 if(homePosition == null ){
                     position1.setText(String.valueOf(0));
@@ -526,7 +526,7 @@ public class SchrodingerAdapter extends BaseAdapter {
     public ArrayList<Game> myPredictionsList(Game game){
 
         possibilities = (ArrayList<Game>) appDatabase.getGamePossibilitiess(game.getFixtureId());
-        maxScore = appDatabase.getCheckedGamesByHomeAndAway(game.getHome(), game.getAway(), game.getSeason());
+        maxScore = appDatabase.getCheckedGamesByHomeAndAway(game.getHome(), game.getAway());
 
         try{
             int home = maxScore.get(0);

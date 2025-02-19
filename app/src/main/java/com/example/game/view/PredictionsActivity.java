@@ -43,7 +43,7 @@ public class PredictionsActivity extends AppCompatActivity {
     private AppViewModel appViewModel;
     private AppDatabase appDatabase;
     private PredictionAdapter adapter, filteredAdapter;
-    private ListView verifyGame_ListView, myPrediction_ListView;
+    private ListView verifyGame_ListView, filtered_listView;
     private SearchView searchView;
     private MenuItem searchMenuItem;
     private Game game, theGame;
@@ -67,8 +67,8 @@ public class PredictionsActivity extends AppCompatActivity {
         baseUrl = Objects.requireNonNull(getIntent().getExtras()).getString("baseUrl");
         appViewModel.init(PredictionsActivity.this, baseUrl);
         appDatabase = AppDatabase.getAppDb(PredictionsActivity.this);
-        verifyGame_ListView  = findViewById(R.id.prediction_ListView);
-        myPrediction_ListView  = findViewById(R.id.myPrediction_ListView);
+        filtered_listView  = findViewById(R.id.filtered_listView);
+        verifyGame_ListView  = findViewById(R.id.fullScore_listView);
         maxHomeEditText = findViewById(R.id.maxHome);
         maxAwayEditText = findViewById(R.id.maxAway);
         sizeEditText = findViewById(R.id.size);
@@ -131,6 +131,7 @@ public class PredictionsActivity extends AppCompatActivity {
 
                 try{
                     if (maxScore.isEmpty()){
+
                         ArrayList<Game> autoPrediction = (ArrayList<Game>) moveScoresToBeginning(games);
 
                         adapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), (ArrayList<Game>) autoPrediction, R.layout.prediction_rows, baseUrl);
@@ -138,7 +139,7 @@ public class PredictionsActivity extends AppCompatActivity {
                         adapter.setGames((ArrayList<Game>) autoPrediction);
 
                         filteredAdapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), autoPrediction, R.layout.prediction_rows, baseUrl);
-                        myPrediction_ListView.setAdapter(filteredAdapter);
+                        filtered_listView.setAdapter(filteredAdapter);
                         filteredAdapter.setGames((ArrayList<Game>) autoPrediction);
 
 
@@ -156,18 +157,22 @@ public class PredictionsActivity extends AppCompatActivity {
                         adapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), (ArrayList<Game>) autoPrediction, R.layout.prediction_rows, baseUrl);
 
                         for (int i = 0; i < autoPrediction.size(); i++) {
-                            boolean gameCheck = Integer.parseInt(autoPrediction.get(i).getScore1()) <= home && Integer.parseInt(autoPrediction.get(i).getScore2()) <= away;
-                            if (gameCheck) {
-                                myPredictions.add(autoPrediction.get(i));
-                            }
+                            if(autoPrediction.get(i).getScore1() == null){
 
+                            }
+                            else {
+                                boolean gameCheck = Integer.parseInt(autoPrediction.get(i).getScore1()) <= home && Integer.parseInt(autoPrediction.get(i).getScore2()) <= away;
+                                if (gameCheck) {
+                                    myPredictions.add(autoPrediction.get(i));
+                                }
+                            }
                         }
 
                         myPredictions.size();
 
                         filteredAdapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), myPredictions, R.layout.prediction_rows, baseUrl);
 
-                        myPrediction_ListView.setAdapter(filteredAdapter);
+                        filtered_listView.setAdapter(filteredAdapter);
                         filteredAdapter.setGames((ArrayList<Game>) myPredictions);
 
                         verifyGame_ListView.setAdapter(adapter);
@@ -180,14 +185,14 @@ public class PredictionsActivity extends AppCompatActivity {
                 }
 
             }else{
-                myPrediction_ListView.setAdapter(null);
+                filtered_listView.setAdapter(null);
                 verifyGame_ListView.setAdapter(null);
             }
 
         });
 
     }
-    public static List<Game> moveScoresToBeginning(final List<Game> games) {
+    public static List<Game> moveScoresToBeginning(List<Game> games) {
 
         ArrayList<Game> gameToLoop = (ArrayList<Game>) games;
         ArrayList<List<Integer>> group = new ArrayList<List<Integer>>();
@@ -224,14 +229,19 @@ public class PredictionsActivity extends AppCompatActivity {
 
 
 
-        final List<Game> newGames = new ArrayList<Game>();
-        final List<Game> otherGames = new ArrayList<Game>();
+        List<Game> newGames = new ArrayList<Game>();
+
 
         for (List<Integer> nested : group) {
             for (Game game : gameToLoop) {
-                if (Integer.parseInt(game.getScore1())  == nested.get(0) && Integer.parseInt(game.getScore2())  == nested.get(1)){
-                    newGames.add(game);
+                if(game.getScore1() == null){
+
+                }else{
+                    if (Integer.parseInt(game.getScore1()) == nested.get(0) && Integer.parseInt(game.getScore2()) == nested.get(1)){
+                        newGames.add(game);
+                    }
                 }
+
             }
         }
 
@@ -277,7 +287,7 @@ public class PredictionsActivity extends AppCompatActivity {
                         maxScore = new ArrayList<>();
                         ArrayList<Game> myPredictions = new ArrayList<>();
                         ArrayList<Game> no_of_schrodingers = new ArrayList<>();
-                        maxScore = appDatabase.getCheckedGamesByHomeAndAway(theGame.getHome(), theGame.getAway(), theGame.getSeason());
+                        maxScore = appDatabase.getCheckedGamesByHomeAndAway(theGame.getHome(), theGame.getAway());
 
                         try{
                             maxHomeEditText.setText(String.valueOf(maxScore.get(0)));
@@ -298,7 +308,7 @@ public class PredictionsActivity extends AppCompatActivity {
                             myPredictions.size();
                             no_of_cats.setText(String.valueOf(no_of_schrodingers.size()));
                             filteredAdapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), myPredictions, R.layout.prediction_rows, baseUrl);
-                            myPrediction_ListView.setAdapter(filteredAdapter);
+                            filtered_listView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
                             filteredAdapter.notifyDataSetChanged();
                             sizeEditText.setText(String.valueOf(myPredictions.size()));
@@ -308,7 +318,7 @@ public class PredictionsActivity extends AppCompatActivity {
                         }
 
                     }else{
-                        myPrediction_ListView.setAdapter(null);
+                        filtered_listView.setAdapter(null);
                         verifyGame_ListView.setAdapter(null);
                     }
 
@@ -341,7 +351,7 @@ public class PredictionsActivity extends AppCompatActivity {
                             myPredictions.size();
                             no_of_cats.setText(String.valueOf(no_of_schrodingers.size()));
                             filteredAdapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), myPredictions, R.layout.prediction_rows, baseUrl);
-                            myPrediction_ListView.setAdapter(filteredAdapter);
+                            filtered_listView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
                             filteredAdapter.notifyDataSetChanged();
                             sizeEditText.setText(String.valueOf(myPredictions.size()));
@@ -351,7 +361,7 @@ public class PredictionsActivity extends AppCompatActivity {
                         }
 
                     }else{
-                        myPrediction_ListView.setAdapter(null);
+                        filtered_listView.setAdapter(null);
                         verifyGame_ListView.setAdapter(null);
                     }
 
@@ -386,7 +396,7 @@ public class PredictionsActivity extends AppCompatActivity {
                             no_of_cats.setText(String.valueOf(no_of_schrodingers.size()));
                             filteredAdapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), myPredictions, R.layout.prediction_rows, baseUrl);
 
-                            myPrediction_ListView.setAdapter(filteredAdapter);
+                            filtered_listView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
                             filteredAdapter.notifyDataSetChanged();
                             sizeEditText.setText(String.valueOf(myPredictions.size()));
@@ -445,7 +455,7 @@ public class PredictionsActivity extends AppCompatActivity {
                             myPredictions.size();
                             no_of_cats.setText(String.valueOf(no_of_schrodingers.size()));
                             filteredAdapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), myPredictions, R.layout.prediction_rows, baseUrl);
-                            myPrediction_ListView.setAdapter(filteredAdapter);
+                            filtered_listView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
                             filteredAdapter.notifyDataSetChanged();
                             maxHomeEditText.setText(String.valueOf(maxScore.get(0)));
@@ -455,7 +465,7 @@ public class PredictionsActivity extends AppCompatActivity {
                         }catch (IndexOutOfBoundsException e){}
 
                     }else{
-                        myPrediction_ListView.setAdapter(null);
+                        filtered_listView.setAdapter(null);
                         verifyGame_ListView.setAdapter(null);
                     }
                 });
@@ -484,7 +494,7 @@ public class PredictionsActivity extends AppCompatActivity {
                             myPredictions.size();
                             no_of_cats.setText(String.valueOf(no_of_schrodingers.size()));
                             filteredAdapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), myPredictions, R.layout.prediction_rows, baseUrl);
-                            myPrediction_ListView.setAdapter(filteredAdapter);
+                            filtered_listView.setAdapter(filteredAdapter);
                             filteredAdapter.setGames((ArrayList<Game>) filteredAdapter.getGames());
                             filteredAdapter.notifyDataSetChanged();
                             maxHomeEditText.setText(String.valueOf(maxScore.get(0)));
@@ -492,7 +502,7 @@ public class PredictionsActivity extends AppCompatActivity {
                             sizeEditText.setText(String.valueOf(myPredictions.size()));
                         }catch (IndexOutOfBoundsException e){}
                     }else{
-                        myPrediction_ListView.setAdapter(null);
+                        filtered_listView.setAdapter(null);
                         verifyGame_ListView.setAdapter(null);
                     }
                 });
@@ -524,7 +534,7 @@ public class PredictionsActivity extends AppCompatActivity {
                                         .collect(collectingAndThen(toCollection(() -> new TreeSet<>(comparingInt(Game::getId))),
                                                 ArrayList::new));
                                 filteredAdapter = new PredictionAdapter(getSystemService(PredictionsActivity.class), (ArrayList<Game>) unique, R.layout.prediction_rows, baseUrl);
-                                myPrediction_ListView.setAdapter(filteredAdapter);
+                                filtered_listView.setAdapter(filteredAdapter);
                                 filteredAdapter.setGames((ArrayList<Game>) unique);
                                 sizeEditText.setText(String.valueOf(unique.size()));
                             }

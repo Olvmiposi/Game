@@ -25,6 +25,7 @@ import com.example.game.response.LoginResponse;
 import com.example.game.retrofit.ApiRequest;
 import com.example.game.retrofit.RetrofitClient;
 import com.example.game.view.MainActivity;
+import com.example.game.view.SplashScreen;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -122,9 +123,9 @@ public class AppRepository {
                 if (response.isSuccessful()){
                     isLoading.postValue(false);
 
-                    Intent MainActivityIntent = new Intent(view.getContext(), MainActivity.class);
-                    MainActivityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    view.getContext().startActivity(MainActivityIntent);
+                    Intent SplashScreenIntent = new Intent(view.getContext(), SplashScreen.class);
+                    SplashScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    view.getContext().startActivity(SplashScreenIntent);
 
                     loginUser.postValue(response.body());
                     Toast.makeText(view.getContext(), "Login successful ", Toast.LENGTH_SHORT).show();
@@ -568,6 +569,9 @@ public class AppRepository {
             public void onResponse( Call <ArrayList<Game>> call, Response <ArrayList<Game>> response) {
                 isLoading.postValue(false);
                 todayGame.postValue(response.body());
+                try {
+                    appDatabase.addGameList(response.body());
+                }catch (NullPointerException e){}
             }
             @Override
             public void onFailure(Call<ArrayList <Game> >call, Throwable t) {

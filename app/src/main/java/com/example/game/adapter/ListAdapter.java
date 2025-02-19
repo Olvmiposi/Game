@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.game.R;
 import com.example.game.model.ClubStats;
 import com.example.game.model.Game;
+import com.example.game.model.League;
 import com.example.game.model.LiveUpdate;
 import com.example.game.model.LiveUpdateResponse;
 import com.example.game.repository.AppDatabase;
@@ -41,6 +42,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -52,6 +54,8 @@ public class ListAdapter extends BaseAdapter {
     private final Activity activity;
     private LayoutInflater inflater;
     private AllGamesFilter gameFilter;
+    public static final long HOUR = 3600*1000; // in milli-seconds.
+
     private ArrayList<Game> games;
     private ArrayList<Game> filteredList;
     private int layout, isInvinsible;
@@ -155,8 +159,8 @@ public class ListAdapter extends BaseAdapter {
             try{
                 maxDate = table.get(table.size() - 1).getDateTime();
 
-                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getHome());
-                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getAway());
+                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), currentGame.getSeason(), maxDate, currentGame.getHome());
+                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), currentGame.getSeason(), maxDate, currentGame.getAway());
 
                 if(homePosition == null ){
                     position1.setText(String.valueOf(0));
@@ -210,6 +214,9 @@ public class ListAdapter extends BaseAdapter {
 
             appViewModel = new ViewModelProvider((MainActivity)context).get(AppViewModel.class);
             appViewModel.init((MainActivity)context, baseUrl);
+
+
+            updateGame(newGame);
 
             try {
                 Date currentDate = new Date();
@@ -360,6 +367,43 @@ public class ListAdapter extends BaseAdapter {
         }
 
         return convertView;
+    }
+
+    public void updateGame(Game game){
+
+        String time = game.getTime();
+
+        SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a",  Locale.FRANCE) ;
+
+        League league = new League();
+
+        Date currentDate = new Date();
+
+        String currentTime = timeFormat.format(currentDate);
+
+        league = appDatabase.getLeagueByIdAndSeason(game.getLeagueId(), game.getSeason());
+
+        try {
+            Date date = timeFormat.parse(time) ;
+
+            Date time1 = timeFormat.parse(currentTime);
+
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(date);
+
+            //Adding 1 Hours to your Date
+            cal.add(Calendar.HOUR_OF_DAY, 1);
+
+            Date time2 = cal.getTime();
+
+
+            if (time2 == time1){
+                appViewModel.updateCheckedGames(league);
+            }
+
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void sort(){

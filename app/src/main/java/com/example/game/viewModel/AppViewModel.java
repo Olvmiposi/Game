@@ -164,6 +164,22 @@ public class AppViewModel extends ViewModel {
         }
     }
 
+    public void addFragment2(Fragment fragment, View view){
+
+        String backStateName = fragment.getClass().getName();
+
+        FragmentManager manager = ((AppCompatActivity) getActivity(view.getContext())).getSupportFragmentManager();
+        boolean fragmentPopped = manager.popBackStackImmediate (backStateName, 0);
+
+        if (!fragmentPopped && manager.findFragmentByTag(backStateName) == null){ //fragment not in back stack, create it.
+            FragmentTransaction ft = manager.beginTransaction();
+            ft.add(R.id.layout_placeholder, fragment, backStateName);
+            ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+            ft.addToBackStack(backStateName);
+            ft.commit();
+        }
+    }
+
     public FragmentManager getFragmentManager (Fragment fragment, View view){
         String backStateName = fragment.getClass().getName();
 
@@ -261,7 +277,6 @@ public class AppViewModel extends ViewModel {
         appRepository.getUpdate(usage);
     }
 
-
     public void updateCheckedGames(League league){
         appRepository.updateCheckedGames(league);
     }
@@ -277,19 +292,15 @@ public class AppViewModel extends ViewModel {
     public void searchGameOnClick( String s ) {
         appRepository.searchGame(s);
     }
-
-
     public void getLiveUpdate(LiveUpdate liveUpdate){
         appRepository.getLiveUpdate(liveUpdate);
     }
-
     public MutableLiveData<ArrayList<LiveUpdateResponse>> getLiveUpdateResponse(){
         if (getLiveUpdateResponse == null) {
             getLiveUpdateResponse = new MutableLiveData<>();
         }
         return getLiveUpdateResponse;
     }
-
 
     public void searchSchrodingerOnClick( String s ) {
         appRepository.searchSchrodinger(s);

@@ -79,7 +79,8 @@ public class SchrodingerFragmentActivity  extends Fragment implements YearRecycl
     private AppDatabase appDatabase;
     private String maxDate, latestDate, baseUrl;
     private Parcelable state = null;
-    private int isInvinsible;
+    private ArrayList<String> maxDates;
+    private int isInvinsible, currentVisiblePosition;
     private Bundle bundle;
     private ProgressBar progressBar;
 
@@ -254,7 +255,7 @@ public class SchrodingerFragmentActivity  extends Fragment implements YearRecycl
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public void myUpdateOperation(){
-        ArrayList<String> maxDates = new ArrayList<>();
+        maxDates = new ArrayList<>();
         ArrayList<Integer> leagueIds = new ArrayList<>();
 
         mySwipeRefreshLayout.setOnRefreshListener(() -> {
@@ -360,81 +361,89 @@ public class SchrodingerFragmentActivity  extends Fragment implements YearRecycl
             @Override
             public void onItemClick(View view, int position) {
 
-                ArrayList<Integer> leagueIds = new ArrayList<>();
+                populateListView(position, maxDates);
 
-                maxDates.clear();
-                allGamesLeagues.clear();
+            }
+        });
+    }
 
-                int season = yearRecyclerViewAdapter.getItem(position);
-                leagueIds = appDatabase.getDistinctLeagueBySeason(season);
-                for (int leagueId:leagueIds) {
-                    allGamesLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
-                }
+    public void populateListView(int position, ArrayList<String> maxDates){
 
+        ArrayList<Integer> leagueIds = new ArrayList<>();
 
-                for(League league: allGamesLeagues) {
-                    gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(league.getLeagueId(), league.getSeason());
-                    try{
-                        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+        maxDates.clear();
+        allGamesLeagues.clear();
 
-                        latestDate = Objects.requireNonNull(gameArrayList.stream()
-                                .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
-                                .max(Comparator.comparing(LocalDate::toEpochDay))
-                                .orElse(null)).format(dtf);
+        currentVisiblePosition = position;
 
-                        maxDates.add(latestDate);
-                    }catch(NullPointerException e ){
-
-                    }
-                }
-
-                adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 2, maxDates);
-                listView.setAdapter(adapter);
-                if(state != null) {
-                    listView.onRestoreInstanceState(state);
-                }
-                adapter.setLeagues(allGamesLeagues);
-                adapter.notifyDataSetChanged();
-
-                listView.setTextFilterEnabled(true);
-                listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        League selectedLeague = new League();
-                        selectedLeague = (League) adapter.getItem(position);
-
-                        gameArrayList = (ArrayList<Game>) appDatabase.getSchrodingerByLeagueIdAndSeason(selectedLeague.getLeagueId(), selectedLeague.getSeason());
-                        try{
-                            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+        int season = yearRecyclerViewAdapter.getItem(position);
+        leagueIds = appDatabase.getDistinctLeagueBySeason(season);
+        for (int leagueId:leagueIds) {
+            allGamesLeagues.add(appDatabase.getLeagueByIdAndSeason(leagueId,season));
+        }
 
 
-                            ArrayList<Game> newgames = new ArrayList<>();
-                            for (Game game: gameArrayList) {
-                                Date currentDate = new Date();
-                                SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
-                                String currentDateTime = dateFormat.format(currentDate);
-                                Date date1 = (Date) dateFormat.parse(currentDateTime);
-                                Date date2 = (Date) dateFormat.parse(String.valueOf(game.getDate()));
-                                if(date1.after(date2)){
-                                    System.out.println("Date1 is after Date2");
-                                }else if (date1.before(date2)){
-                                    newgames.add(game);
-                                }
-                            }
-                            latestDate = Objects.requireNonNull(newgames.stream()
-                                    .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
-                                    .min(Comparator.comparing(LocalDate::toEpochDay))
-                                    .orElse(null)).format(dtf);
+        for(League league: allGamesLeagues) {
+            gameArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(league.getLeagueId(), league.getSeason());
+            try{
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
 
-                            maxDates.add(latestDate);
-                        }catch(NullPointerException | ParseException e ){
+                latestDate = Objects.requireNonNull(gameArrayList.stream()
+                        .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
+                        .max(Comparator.comparing(LocalDate::toEpochDay))
+                        .orElse(null)).format(dtf);
+
+                maxDates.add(latestDate);
+            }catch(NullPointerException e ){
+
+            }
+        }
+
+        adapter = new LeagueAdapter(getActivity(), allGamesLeagues, R.layout.league_activity_rows, 2, maxDates);
+        listView.setAdapter(adapter);
+        if(state != null) {
+            listView.onRestoreInstanceState(state);
+        }
+        adapter.setLeagues(allGamesLeagues);
+        adapter.notifyDataSetChanged();
+
+        listView.setTextFilterEnabled(true);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                League selectedLeague = new League();
+                selectedLeague = (League) adapter.getItem(position);
+
+                gameArrayList = (ArrayList<Game>) appDatabase.getSchrodingerByLeagueIdAndSeason(selectedLeague.getLeagueId(), selectedLeague.getSeason());
+                try{
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.US);
+
+
+                    ArrayList<Game> newgames = new ArrayList<>();
+                    for (Game game: gameArrayList) {
+                        Date currentDate = new Date();
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
+                        String currentDateTime = dateFormat.format(currentDate);
+                        Date date1 = (Date) dateFormat.parse(currentDateTime);
+                        Date date2 = (Date) dateFormat.parse(String.valueOf(game.getDate()));
+                        if(date1.after(date2)){
+                            System.out.println("Date1 is after Date2");
+                        }else if (date1.before(date2)){
+                            newgames.add(game);
                         }
-
-                        SchrodingerFragment schrodingerFragment = getSchrodingerFragment(selectedLeague);
-                        appViewModel.replaceFragment(schrodingerFragment, view);
-
                     }
-                });
+                    latestDate = Objects.requireNonNull(newgames.stream()
+                            .map(d -> LocalDate.parse(String.valueOf(d.getDate()), dtf))
+                            .min(Comparator.comparing(LocalDate::toEpochDay))
+                            .orElse(null)).format(dtf);
+
+                    maxDates.add(latestDate);
+                }catch(NullPointerException | ParseException e ){
+                }
+
+                SchrodingerFragment schrodingerFragment = getSchrodingerFragment(selectedLeague);
+                appViewModel.replaceFragment(schrodingerFragment, view);
+
             }
         });
     }
@@ -479,6 +488,8 @@ public class SchrodingerFragmentActivity  extends Fragment implements YearRecycl
     @Override
     public void onStart() {
         super.onStart();
+        yearRecyclerViewAdapter.setSelected_position(currentVisiblePosition);
+        populateListView(currentVisiblePosition, maxDates);
     }
     @Override
     public void onStop() {
@@ -487,15 +498,6 @@ public class SchrodingerFragmentActivity  extends Fragment implements YearRecycl
     @Override
     public void onResume(){
         super.onResume();
-    }
-    @Override
-    public void onSaveInstanceState(Bundle Bstate) {
-        super.onSaveInstanceState(Bstate);
-        state = listView.onSaveInstanceState();
-        Bstate.putParcelable(LIST_STATE, state);
-        if(state != null) {
-            listView.onRestoreInstanceState(state);
-        }
     }
     @Override
     public void onItemClick(View view, int position) {

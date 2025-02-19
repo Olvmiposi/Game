@@ -171,8 +171,8 @@ public class PasswordAdapter extends BaseAdapter implements Filterable {
 
                 maxDate = table.get(table.size() - 1).getDateTime();
 
-                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getHome());
-                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getAway());
+                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), currentGame.getSeason(), maxDate, currentGame.getHome());
+                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), currentGame.getSeason(), maxDate, currentGame.getAway());
 
                 if(homePosition == null ){
                     position1.setText(String.valueOf(0));

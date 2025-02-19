@@ -126,7 +126,7 @@ public class TableFragment extends Fragment implements IOnBackPressed {
 
         try{
             maxDate = table.get(table.size() - 1).getDateTime();
-            newTable = appDatabase.getTableByDate(league.getLeagueId(), maxDate );
+            newTable = appDatabase.getTableByDate(league.getLeagueId(), league.getSeason(), maxDate );
             adapter = new TableAdapter(getActivity(),newTable, R.layout.tablestats_row , baseUrl);
             listView.setAdapter(adapter);
             adapter.setClubStats((ArrayList<ClubStats>) newTable);

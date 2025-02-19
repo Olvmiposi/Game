@@ -2,7 +2,6 @@ package com.example.game.repository;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Build;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Database;
@@ -77,13 +76,14 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     private LiveData<Usage> usage;
     private LiveData<Info> info;
     private ClubStats table;
+
     private ArrayList<ClubStats> standing;
     private ClubStats position;
     private ArrayList<Integer> homeScore, awayScore, maxScore, minScore, mostScore;
     private ArrayList<Game>  homeGame, awayGame;
     private String stringMostHome, stringMostAway;
     private ArrayList<String> stringMostScore, mostOccurred;
-    private int maxHome, minHome, maxAway, minAway, mostHome, mostAway;
+    private int maxHome, minHome, maxAway, minAway, mostHome, mostAway, size;
 
 
     public static AppDatabase getAppDb(Context context) {
@@ -298,10 +298,10 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
             }
         }).start();
     }
-    public ArrayList<ClubStats> getTableByDate(int id, String date) {
+    public ArrayList<ClubStats> getTableByDate(int id, int season, String date) {
         Thread thread = new Thread(() -> {
             try {
-                standing = (ArrayList<ClubStats>) clubStatsDao().getTableByDate(id, date);
+                standing = (ArrayList<ClubStats>) clubStatsDao().getTableByDate(id, season, date);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -317,10 +317,10 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         return standing;
     }
 
-    public ClubStats getGamePosition(int id, String date, String club) {
+    public ClubStats getGamePosition(int id, int season, String date, String club) {
         Thread thread = new Thread(() -> {
             try {
-                position =  clubStatsDao().getGamePosition(id, date, club);
+                position =  clubStatsDao().getGamePosition(id, season, date, club);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -916,6 +916,27 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
         }
         return games;
     }
+
+    public int getAllCheckedGames(String username, int leagueId) {
+
+        Thread thread = new Thread(() -> {
+            try {
+                gameArrayList = (ArrayList<Game>) gameDao().getAllCheckedGames(username, leagueId);
+
+                size = gameArrayList.size();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return size;
+    }
+
     public ArrayList<Game> getAllCheckedGamesList() {
         Thread thread = new Thread(() -> {
             try {
@@ -934,7 +955,7 @@ public abstract class AppDatabase extends RoomDatabase implements Serializable {
     }
 
     // All checked games by home and away
-    public ArrayList<Integer> getCheckedGamesByHomeAndAway(String home, String away, int season) {
+    public ArrayList<Integer> getCheckedGamesByHomeAndAway(String home, String away) {
         homeScore = new ArrayList<>();
         awayScore = new ArrayList<>();
         maxScore = new ArrayList<>();

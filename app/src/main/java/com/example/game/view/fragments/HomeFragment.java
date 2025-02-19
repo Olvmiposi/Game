@@ -59,7 +59,6 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
     private ListAdapter adapter;
     private SwipeRefreshLayout mySwipeRefreshLayout;
     private MainMenuActivityService menuActivityService;
-
     private ListView listView;
     private League league;
     private String latestDate, baseUrl;
@@ -144,9 +143,10 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
             appViewModel.getTodayGame();
             getActivity().startService(serviceintent);
             onCompletion();
-            ((MainActivity) getActivity()).setInfo();
+
         });
 
+        ((MainActivity) getActivity()).setInfo();
 
         listView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
@@ -187,10 +187,8 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
                             String currentDateTime = dateFormat.format(currentDate);
 
                             for (Game game: games) {
-
                                 Date date1 = (Date) dateFormat.parse(currentDateTime);
                                 Date date2 = (Date) dateFormat.parse(String.valueOf(game.getDate()));
-
                                 if(date1.after(date2)){
                                     System.out.println("Date1 is after Date2");
                                 }else if (date1.before(date2)){
@@ -231,50 +229,40 @@ public class HomeFragment extends Fragment implements IOnBackPressed {
                                 });
 
                             }else{
-                            appDatabase.getTodayGame(latestDate ).observe( getViewLifecycleOwner(), new Observer<List<Game>>() {
-                                @Override
-                                public void onChanged(List<Game> games) {
-                                    if(games != null){
-                                        adapter = new ListAdapter(getActivity(), (ArrayList<Game>) games, R.layout.today_game_rows, baseUrl);
-                                        listView.setAdapter(adapter);
-                                        adapter.setGames((ArrayList<Game>) games);
-                                        if(state != null) {
-                                            listView.onRestoreInstanceState(state);
-                                        }
-                                        adapter.notifyDataSetChanged();
-                                        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                                            @Override
-                                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                                                Game newGame = new Game();
-                                                newGame = (Game) adapter.getItem(position);
-
-                                                Intent Intent = new Intent(getContext(), PredictionsActivity.class);
-                                                Bundle b = new Bundle();
-                                                b.putSerializable("game",(Serializable)newGame);
-                                                Intent.putExtras(b);
-                                                Intent.putExtra("baseUrl", baseUrl);
-                                                requireActivity().startActivity(Intent);
-                                            }
-                                        });
-                                        adapter.notifyDataSetChanged();
-                                    }else if(games.size() == 0){
-                                        appDatabase.getGames().observe(getViewLifecycleOwner(), games1 ->{
-                                            adapter = new ListAdapter(getActivity(), (ArrayList<Game>) games1, R.layout.today_game_rows, baseUrl);
+                                appDatabase.getTodayGame(latestDate).observe( getViewLifecycleOwner(), new Observer<List<Game>>() {
+                                    @Override
+                                    public void onChanged(List<Game> games) {
+                                        if(games != null){
+                                            adapter = new ListAdapter(getActivity(), (ArrayList<Game>) games, R.layout.today_game_rows, baseUrl);
                                             listView.setAdapter(adapter);
+                                            adapter.setGames((ArrayList<Game>) games);
                                             if(state != null) {
                                                 listView.onRestoreInstanceState(state);
                                             }
-                                            adapter.setGames((ArrayList<Game>) games1);
                                             adapter.notifyDataSetChanged();
-                                        });
-                                    }
-                                }
-                            });
 
+                                            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                                @Override
+                                                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                                                    Game newGame = new Game();
+                                                    newGame = (Game) adapter.getItem(position);
+
+
+
+                                                    Intent Intent = new Intent(getContext(), PredictionsActivity.class);
+                                                    Bundle b = new Bundle();
+                                                    b.putSerializable("game",(Serializable)newGame);
+                                                    Intent.putExtras(b);
+                                                    Intent.putExtra("baseUrl", baseUrl);
+                                                    requireActivity().startActivity(Intent);
+                                                }
+                                            });
+                                            adapter.notifyDataSetChanged();
+                                        }
+                                    }
+                                });
                             }
                         }
-
-
 
                     }catch (NullPointerException | ParseException e) {
 

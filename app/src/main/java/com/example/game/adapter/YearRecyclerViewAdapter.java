@@ -42,6 +42,7 @@ public class YearRecyclerViewAdapter extends RecyclerView.Adapter<YearRecyclerVi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         int year = mYears.get(position);
         holder.myTextView.setText(String.valueOf(year));
+        holder.setIsRecyclable(true);
         if(selectedItem == position)
             holder.itemView.setSelected(true);
         // Here I am just highlighting the background

@@ -169,7 +169,7 @@
             </LinearLayout>
 
             <ListView
-                android:id="@+id/myPrediction_ListView"
+                android:id="@+id/filtered_listView"
                 android:layout_width="fill_parent"
                 android:layout_height="200dp"
                 android:layout_below="@+id/layout"
@@ -181,14 +181,14 @@
                 android:id="@+id/predictions"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/myPrediction_ListView"
+                android:layout_below="@+id/filtered_listView"
                 android:layout_centerHorizontal="true"
                 android:text="Auto Predictions"
                 android:textColor="#100F0F"
                 android:textSize="25sp" />
 
             <ListView
-                android:id="@+id/prediction_ListView"
+                android:id="@+id/fullScore_listView"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
                 android:layout_below="@+id/predictions"

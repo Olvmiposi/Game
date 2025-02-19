@@ -40,14 +40,13 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
     private ArrayList<Game> games;
     private GameFilter gameFilter;
     private ArrayList<Game> filteredList, checkedGamesArrayList;
-    private int layout;
+    private int layout, checkedsize;
     private LinearLayout li, lLayout;
-
     private AppDatabase appDatabase;
     private Button verifyGameBtn;
     private AppViewModel appViewModel;
     private ImageView ifSchrodinger;
-    private TextView username, division, home, away, score1, score2, time, date, position1, position2, pointDifference, odds;
+    private TextView username, division, home, away, score1, score2, time, date, position1, position2, pointDifference, odds, checked;
     private ImageView up_arrow1, down_arrow1, up_arrow2, down_arrow2;
     private ArrayList<ClubStats> table, newTable;
     private String maxDate, baseUrl;
@@ -122,6 +121,7 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
         pointDifference = convertView.findViewById(R.id.pointdifference);
         lLayout = convertView.findViewById(R.id.layout);
         odds = convertView.findViewById(R.id.odds);
+        checked = convertView.findViewById(R.id.checked);
 
         position1.setVisibility(VISIBLE);
         position2.setVisibility(VISIBLE);
@@ -143,10 +143,8 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
             try{
                 maxDate = table.get(table.size() - 1).getDateTime();
 
-                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getHome());
-                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), maxDate, currentGame.getAway());
-
-
+                homePosition = appDatabase.getGamePosition(currentGame.getLeagueId(), currentGame.getSeason(), maxDate, currentGame.getHome());
+                awayPosition = appDatabase.getGamePosition(currentGame.getLeagueId(), currentGame.getSeason(), maxDate, currentGame.getAway());
 
                 if(homePosition == null ){
                     position1.setText(String.valueOf(0));
@@ -194,15 +192,6 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
             lLayout.setBackgroundColor(0);
         }
 
-//        checkedGamesArrayList = (ArrayList<Game>) appDatabase.getCheckedGamesByLatestDate2(currentGame.getLeagueId(), currentGame.getSeason());
-//
-//        for (Game game:checkedGamesArrayList) {
-//            if (Objects.equals(currentGame.getUsername(), game.getUsername())){
-//                lLayout.setBackgroundColor(Color.parseColor("#34833C"));//green - game is  won
-//            }
-//        }
-
-
 
         if(layout == (R.layout.prediction_rows))
         {
@@ -221,8 +210,9 @@ public class PredictionAdapter extends BaseAdapter implements Filterable {
 
             username.setTextColor(Color.RED);
 
+            checkedsize = appDatabase.getAllCheckedGames(currentGame.getUsername().replaceAll("\\d", ""), currentGame.getLeagueId());
 
-
+            checked.setText(Integer.toString(checkedsize));
 
 
             verifyGameBtn.setOnClickListener(new View.OnClickListener() {

@@ -34,11 +34,14 @@ public interface GameDAO {
 
     @Query("SELECT * from games where checked = 1 ")
     LiveData<List<Game>> getAllCheckedGames();
+
+    @Query("SELECT * from games where checked = 1 and username LIKE :username and leagueId = :leagueId")
+    List<Game> getAllCheckedGames(String username, int leagueId);
     @Query("SELECT * from games where checked = 1 ")
     List<Game> getAllCheckedGamesList();
-    @Query("SELECT * from games where checked = 1 and home = :home ")
+    @Query("SELECT * from games where checked = 1 and home = :home")
     List<Game> getCheckedGamesByHome1(String home);
-    @Query("SELECT * from games where checked = 1 and away = :away ")
+    @Query("SELECT * from games where checked = 1 and away = :away")
     List<Game> getCheckedGamesByAway1(String away);
     @Query("SELECT * from games where checked = 1 and home = :home and season = :season")
     List<Game> getCheckedGamesByHome(String home, int season);

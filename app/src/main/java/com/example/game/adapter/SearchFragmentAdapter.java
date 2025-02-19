@@ -449,7 +449,7 @@ public class SearchFragmentAdapter extends BaseAdapter {
     public ArrayList<Game> myPredictionsList(Game game){
 
         possibilities = (ArrayList<Game>) appDatabase.getGamePossibilitiess(game.getFixtureId());
-        maxScore = appDatabase.getCheckedGamesByHomeAndAway(game.getHome(), game.getAway(), game.getSeason());
+        maxScore = appDatabase.getCheckedGamesByHomeAndAway(game.getHome(), game.getAway());
 
         try{
             int home = maxScore.get(0);

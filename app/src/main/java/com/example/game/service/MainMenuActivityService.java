@@ -46,6 +46,7 @@ public class MainMenuActivityService extends IntentService {
             Thread.sleep(5000);
             IntentFilter intentFilter = new IntentFilter();
 
+            
             appRepository.getUsernameInfo();
             appRepository.getTodayGame();
             appRepository.getCheckedGames();
